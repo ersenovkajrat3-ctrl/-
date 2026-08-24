@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Сетка</string>
+    <string name="title_activity_main">Сетка</string>
+    <string name="package_name">com.setka.volleyball</string>
+    <string name="custom_url_scheme">com.setka.volleyball</string>
+</resources>

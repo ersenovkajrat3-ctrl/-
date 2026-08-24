@@ -12,9 +12,18 @@
     "e2e:save": "node tools/e2e-save.js",
     "e2e:late": "node tools/e2e-late.js",
     "build": "node tools/build-single.js",
-    "icons": "node tools/make-icons.js"
+    "icons": "node tools/make-icons.js",
+    "www": "node tools/build-www.js",
+    "android:brand": "node tools/android-brand.js",
+    "android:sync": "node tools/build-www.js && cap sync android",
+    "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.2.1",
     "playwright": "^1.49.1"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/android": "^6.2.1"
   }
 }

@@ -263,7 +263,8 @@
     S.Audio.init();
     ['click', 'touchstart'].forEach((e) => window.addEventListener(e, () => S.Audio.resume(), { once: true }));
     startScreen();
-    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    // в нативной обёртке файлы и так локальные — сервис-воркер там не нужен
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !global.SETKA_NATIVE) {
       navigator.serviceWorker.register('sw.js').catch(() => { /* офлайн-режим необязателен */ });
     }
     window.addEventListener('beforeunload', () => { if (UI.game) S.Save.save(UI.game); });

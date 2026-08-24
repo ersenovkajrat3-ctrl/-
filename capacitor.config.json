@@ -1,0 +1,14 @@
+{
+  "appId": "com.setka.volleyball",
+  "appName": "Сетка",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#080d17",
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

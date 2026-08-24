@@ -1,0 +1,57 @@
+# Сборка Android-приложения «Сетка».
+# Локально APK не собрать без Android SDK, поэтому сборка идёт здесь:
+# на раннере GitHub SDK уже установлен. Готовый файл лежит в артефактах запуска.
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'claude/**']
+    paths-ignore: ['README.md', 'docs/**']
+
+jobs:
+  build:
+    name: Собрать APK
+    runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Установить зависимости
+        run: npm install --no-audit --no-fund
+
+      - name: Собрать веб-часть
+        run: node tools/build-www.js
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Синхронизировать Capacitor
+        run: npx cap sync android
+
+      - name: Собрать debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Переименовать файл
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk setka-debug.apk
+
+      - name: Выложить APK в артефакты
+        uses: actions/upload-artifact@v4
+        with:
+          name: setka-apk
+          path: setka-debug.apk
+          if-no-files-found: error
+          retention-days: 30
