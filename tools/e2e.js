@@ -60,8 +60,8 @@ const SHOT = path.join(__dirname, '../.shots');
     await page.waitForTimeout(800);
   });
   await step('17-тайм-аут', async () => {
-    const b = await page.$('.m-ctrl button:has-text("Тайм-аут")');
-    if (b) await b.click();
+    // панель управления перерисовывается после каждого розыгрыша, поэтому кликаем по селектору
+    await page.click('.m-ctrl button:has-text("Тайм-аут")', { timeout: 4000 }).catch(() => {});
     await page.waitForTimeout(400);
   });
   await step('18-до-конца', async () => {

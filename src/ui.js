@@ -13,6 +13,9 @@
   /* ---------- DOM-хелперы ---------- */
   function h(tag, props, ...kids) {
     const e = document.createElement(tag);
+    // второй аргумент может быть и ребёнком: h('b', 'текст') — частая и незаметная ловушка
+    const isProps = props && typeof props === 'object' && !(props instanceof Node) && !Array.isArray(props);
+    if (props != null && !isProps) { kids.unshift(props); props = null; }
     if (props) {
       for (const k in props) {
         const v = props[k];
@@ -34,6 +37,7 @@
   const svg = (paths, attrs) => {
     const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     s.setAttribute('viewBox', (attrs && attrs.vb) || '0 0 24 24');
+    if (attrs && attrs.size) { s.setAttribute('width', attrs.size); s.setAttribute('height', attrs.size); }
     s.setAttribute('fill', 'none');
     s.setAttribute('stroke', 'currentColor');
     s.setAttribute('stroke-width', (attrs && attrs.w) || '1.9');
@@ -67,6 +71,8 @@
   UI.toast = toast;
 
   function modal(title, contentFn, opts = {}) {
+    // одно окно за раз: иначе старое остаётся под новым и перехватывает нажатия
+    document.querySelectorAll('.modal-back').forEach((el) => el.remove());
     const back = h('div', { class: 'modal-back', onclick: (e) => { if (e.target === back) close(); } });
     const box = h('div', { class: 'modal' }, h('div', { class: 'grabber' }));
     if (title) box.appendChild(h('h3', { text: title }));
@@ -160,7 +166,7 @@
     const map = {
       club: screenClub, squad: screenSquad, matches: UI.screenMatches,
       market: UI.screenMarket, feed: UI.screenFeed, arena: UI.screenArena,
-      sponsors: UI.screenSponsors, finance: UI.screenFinance, settings: screenSettings,
+      sponsors: UI.screenSponsors, finance: UI.screenFinance, settings: screenSettings, fans: UI.screenFans,
       inbox: screenInbox, history: UI.screenHistory,
     };
     (map[UI.tab] || screenClub)(scr);
@@ -168,7 +174,10 @@
 
   function pageHeader(title, backTab) {
     return h('div', { class: 'row mb', style: 'gap:6px' },
-      backTab ? h('button', { class: 'btn sm ghost', onclick: () => UI.go(backTab) }, svg(ICONS.back, { w: 2.4 })) : null,
+      backTab ? h('button', {
+        class: 'btn sm ghost', style: 'width:38px;padding:0', 'aria-label': 'Назад',
+        onclick: () => UI.go(backTab),
+      }, svg(ICONS.back, { w: 2.4, size: 18 })) : null,
       h('h2', { text: title, style: 'font-size:19px' }));
   }
   UI.pageHeader = pageHeader;
@@ -246,6 +255,18 @@
       stat(U.num(W.arenaCapacity(club)), 'вместимость'),
       stat(Math.round(sum.attendance.fill * 100) + '%', 'заполняемость')));
 
+    scr.appendChild(h('button', {
+      class: 'card tight row between', style: 'width:100%;text-align:left',
+      onclick: () => UI.go('fans'),
+    },
+      h('div', { class: 'grow' },
+        h('div', { class: 'tiny dim', text: 'ТРИБУНЫ' }),
+        h('div', { class: 'small', text: S.Fans.moodLabel(club.fans.mood) + ' · ' + U.num(club.fans.members) + ' ' + U.plural(club.fans.members, ['абонемент', 'абонемента', 'абонементов']) }),
+        h('div', { class: 'mood-gauge', style: 'margin-top:6px' },
+          h('i', { style: 'width:100%' }),
+          h('b', { style: 'left:calc(' + Math.round(club.fans.mood) + '% - 1.5px)' }))),
+      h('span', { class: 'pill accent', text: Math.round(club.fans.mood) })));
+
     // форма
     scr.appendChild(h('div', { class: 'card tight row between mt' },
       h('div', null, h('div', { class: 'tiny dim', text: 'ФОРМА' }),
@@ -272,7 +293,7 @@
 
     scr.appendChild(h('div', { class: 'section-title', text: 'Управление клубом' }));
     const grid = h('div', { class: 'btn-row', style: 'flex-wrap:wrap;gap:8px' });
-    [['Арена', 'arena'], ['Спонсоры', 'sponsors'], ['Финансы', 'finance'], ['Настройки', 'settings']].forEach(([label, tab]) => {
+    [['Трибуны', 'fans'], ['Арена', 'arena'], ['Спонсоры', 'sponsors'], ['Финансы', 'finance'], ['Настройки', 'settings']].forEach(([label, tab]) => {
       grid.appendChild(h('button', { class: 'btn', style: 'flex:1 1 44%', onclick: () => UI.go(tab) }, label));
     });
     scr.appendChild(grid);
@@ -433,6 +454,12 @@
         h('span', { class: 'ovr ' + ovrClass(P.overall(p)), text: P.overall(p) }))));
   }
 
+  function abroadName(game, id) {
+    const c = (game.euroClubs || []).find((x) => x.id === id);
+    return c ? c.name + ' (' + c.country + ')' : 'зарубежный клуб';
+  }
+  UI.abroadName = abroadName;
+
   function playerMeta(p) {
     const parts = [p.age + ' лет'];
     if (p.foreign) parts.push(S.LANG_FLAG[p.lang] || 'легионер');
@@ -498,7 +525,10 @@
             h('span', { class: 'pill', style: 'margin-left:6px', text: p.age + ' лет' }),
             p.foreign ? h('span', { class: 'pill teal', style: 'margin-left:6px', text: S.LANG_FLAG[p.lang] }) : null),
           h('span', { class: 'ovr ' + ovrClass(P.overall(p)), style: 'width:44px;height:38px;font-size:17px', text: P.overall(p) })),
-        club ? h('div', { class: 'small muted mb', text: 'Клуб: ' + club.name }) : h('div', { class: 'small muted mb', text: 'Свободный агент' }),
+        club ? h('div', { class: 'small muted mb', text: 'Клуб: ' + club.name })
+          : p.abroadClub ? h('div', { class: 'small muted mb' }, 'Клуб: ',
+            h('b', abroadName(g, p.abroadClub)), h('span', { class: 'teal', text: ' · зарубежный клуб' }))
+            : h('div', { class: 'small muted mb', text: 'Свободный агент' }),
         p.injury > 0 ? h('div', { class: 'card tight bad small', text: 'Травма: ' + (p.injuryNote || 'повреждение') + ', ещё ' + p.injury + ' нед.' }) : null,
         h('div', { class: 'stat-grid mb' },
           stat(P.overall(p) + '', 'рейтинг'),
@@ -615,6 +645,7 @@
     scr.appendChild(h('div', { class: 'card' },
       h('button', { class: 'btn full', onclick: () => { S.Save.save(g); toast('Партия сохранена'); } }, 'Сохранить'),
       h('button', { class: 'btn full mt', onclick: () => UI.go('history') }, 'История клуба'),
+      h('button', { class: 'btn full mt', onclick: () => UI.changeClubScreen() }, 'Сменить клуб'),
       h('button', {
         class: 'btn full danger mt', onclick: () => confirmDialog('Начать заново?', 'Текущая карьера будет удалена.', () => {
           S.Save.clear(); location.reload();
@@ -622,7 +653,8 @@
       }, 'Новая карьера')));
 
     scr.appendChild(h('div', { class: 'tiny dim center', style: 'padding:14px 6px' },
-      'Сетка · менеджер волейбольного клуба. Игра сохраняется в памяти браузера.'));
+      'Сетка · менеджер волейбольного клуба. Игра сохраняется в памяти браузера. ' +
+      'Тренера здесь не увольняют: совет может быть недоволен, но карьеру вы заканчиваете сами.'));
   }
 
   function optSwitch(title, desc, value, onChange) {

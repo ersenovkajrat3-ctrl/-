@@ -155,9 +155,15 @@
   }
 
   /* ---------- итоги сезона ---------- */
-  UI.seasonReport = function () {
+  UI.seasonReportModal = function (rep) {
     const g = UI.game;
-    if (g.phase !== 'preseason') {
+    g.lastReport = rep;
+    UI.seasonReport(true);
+  };
+
+  UI.seasonReport = function (again) {
+    const g = UI.game;
+    if (!again && g.phase !== 'preseason') {
       // досимулировать остаток календаря, если игрок нажал «завершить сезон» раньше
       let guard = 0;
       while (g.phase !== 'offseason' && guard++ < 45) {
@@ -173,6 +179,7 @@
     const club = g.clubs[g.playerClubId];
     S.Save.save(g);
     UI.render();
+    if (!again && S.Ceremony.drain(g, () => UI.seasonReport(true))) return;
     UI.modal('Итоги сезона ' + rep.season, (m) => {
       const pl = rep.player;
       const nodes = [
@@ -195,67 +202,86 @@
           h('span', { class: 'muted', text: d.name }),
           h('b', { text: d.champion ? g.clubs[d.champion].name : '—' })));
       });
-      if (rep.dismissed) {
-        nodes.push(h('div', { class: 'card tight bad center mt', text: 'Совет директоров расторг контракт с вами.' }));
-        nodes.push(h('button', { class: 'btn full danger mt', onclick: () => { m.close(); UI.dismissedScreen(); } }, 'Дальше'));
-      } else {
-        nodes.push(h('button', {
-          class: 'btn primary full mt', onclick: () => {
-            m.close();
-            Sn.startSeason(g);
-            S.Save.save(g);
-            UI.go('club');
-            UI.toast('Сезон ' + g.seasonLabel + ' начался');
-          },
-        }, 'Начать сезон ' + Sn.seasonLabel(g.season)));
+      if (rep.board) {
+        nodes.push(h('div', { class: 'card tight' + (rep.board.met ? ' good' : rep.board.failed ? ' bad' : '') },
+          h('div', { class: 'small', text: rep.board.text }),
+          h('div', { class: 'tiny dim', text: 'Доверие совета: ' + rep.board.trust + ' из 100' })));
       }
+      if (rep.fans) {
+        nodes.push(h('div', { class: 'card tight' },
+          h('div', { class: 'tiny dim', text: 'ТРИБУНЫ' }),
+          h('div', { class: 'small', text: S.Fans.moodLabel(rep.fans.mood) + ' · ' + U.num(rep.fans.members) + ' ' + U.plural(rep.fans.members, ['абонемент', 'абонемента', 'абонементов']) }),
+          ...rep.fans.demands.map((d) => h('div', { class: 'tiny ' + (d.done ? 'good' : 'dim'), text: (d.done ? '✓ ' : '· ') + d.text }))));
+      }
+      if (rep.awards && rep.awards.mvp) {
+        nodes.push(h('button', {
+          class: 'btn full mt', onclick: () => {
+            m.close();
+            S.Ceremony.show(g, {
+              type: 'awards', title: 'Награды сезона', subtitle: rep.awards.division,
+              clubId: club.id, awards: rep.awards, season: rep.season,
+            }, () => UI.seasonReportModal(rep));
+          },
+        }, 'Церемония награждения'));
+      }
+      nodes.push(h('button', {
+        class: 'btn primary full mt', onclick: () => {
+          m.close();
+          Sn.startSeason(g);
+          S.Save.save(g);
+          UI.go('club');
+          UI.toast('Сезон ' + g.seasonLabel + ' начался');
+        },
+      }, 'Начать сезон ' + Sn.seasonLabel(g.season)));
       return nodes;
     });
   };
 
-  /* ---------- увольнение ---------- */
-  UI.dismissedScreen = function () {
+  /* ---------- смена клуба по своей воле ---------- */
+  /* Уволить тренера в «Сетке» нельзя: совет может быть недоволен, но карьера продолжается.
+     Сменить клуб можно только самому — из настроек. */
+  UI.changeClubScreen = function () {
     const g = UI.game;
-    const reason = g.dismissed && g.dismissed.reason === 'финансы'
-      ? 'Клуб четыре месяца подряд не сводил баланс.'
-      : 'Задача сезона не выполнена.';
-    g.dismissed = null;
+    const club = g.clubs[g.playerClubId];
     document.getElementById('topbar').hidden = true;
     document.getElementById('tabbar').hidden = true;
     const scr = document.getElementById('screen');
     scr.className = 'screen plain';
     scr.innerHTML = '';
-    scr.appendChild(h('div', { class: 'hero' },
-      h('h1', { text: 'Вы уволены', style: 'font-size:30px' }),
-      h('p', { text: reason })));
-    const club = g.clubs[g.playerClubId];
-    const options = Object.values(g.clubs)
-      .filter((c) => c.division >= Math.min(3, club.division) && !c.isPlayer)
-      .sort((a, b) => a.reputation - b.reputation).slice(0, 8);
-    scr.appendChild(h('div', { class: 'section-title', text: 'Кто готов вас взять' }));
+    scr.appendChild(h('div', { class: 'hero', style: 'padding:26px 12px 10px' },
+      h('h1', { text: 'Новый клуб', style: 'font-size:28px' }),
+      h('p', { text: 'Карьера продолжается: вы уходите из «' + club.baseName + '» и принимаете другую команду. Трофеи и стаж остаются с вами.' })));
+
+    const list = Object.values(g.clubs).filter((c) => !c.isPlayer)
+      .sort((a, b) => a.division - b.division || b.reputation - a.reputation);
     const box = h('div', { class: 'club-pick' });
-    options.forEach((c) => {
+    list.forEach((c) => {
       box.appendChild(h('button', {
         class: 'cp', onclick: () => {
-          club.isPlayer = false;
-          W.assignPlayerClub(g, c.id);
-          g.board = Sn.makeObjective(g, c);
-          g.inbox.unshift({ week: 0, kind: 'board', text: 'Новый клуб, новая задача: ' + g.board.text });
-          document.getElementById('screen').className = 'screen';
-          UI.go('club');
-          UI.toast('Вы приняли ' + c.name);
-          S.Save.save(g);
+          UI.confirm('Принять ' + c.name + '?', 'Вы покидаете «' + club.baseName + '». Сезон начнётся заново с новым клубом.', () => {
+            club.isPlayer = false;
+            W.assignPlayerClub(g, c.id);
+            g.career = g.career || { clubs: [] };
+            g.career.clubs.push({ club: club.name, seasons: club.history.length, trophies: club.trophies.length });
+            g.board = Sn.makeObjective(g, c);
+            g.board.trust = 60;
+            Sn.startSeason(g);
+            document.getElementById('screen').className = 'screen';
+            UI.go('club');
+            UI.toast('Вы приняли ' + c.name);
+            S.Save.save(g);
+          }, 'Принять клуб');
         },
       },
         h('span', { class: 'crest', text: UI.crestLetter(c.name) }),
         h('span', { class: 'grow' },
           h('div', { style: 'font-weight:700', text: c.name }),
-          h('div', { class: 'tiny dim', text: DIVISIONS[c.division].name + ' · состав ' + Math.round(W.clubPower(g, c)) }))));
+          h('div', { class: 'tiny dim', text: DIVISIONS[c.division].name + ' · состав ' + Math.round(W.clubPower(g, c)) + ' · трибуны ' + Math.round(c.fans.mood) }))));
     });
     scr.appendChild(box);
     scr.appendChild(h('button', {
-      class: 'btn ghost full mt', onclick: () => { S.Save.clear(); location.reload(); },
-    }, 'Начать новую карьеру'));
+      class: 'btn ghost full mt', onclick: () => { document.getElementById('screen').className = 'screen'; UI.go('settings'); },
+    }, 'Остаться в клубе'));
   };
 
   /* ---------- инициализация ---------- */

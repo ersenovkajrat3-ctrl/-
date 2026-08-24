@@ -244,13 +244,14 @@
     const g = UI.game;
     const filter = UI.sub.marketRole || 'all';
     scr.appendChild(h('div', { class: 'tabs' },
-      ...[['all', 'Все'], ['S', 'СВ'], ['OP', 'ДИ'], ['OH', 'ДГ'], ['MB', 'ЦБ'], ['L', 'ЛБ']].map(([id, label]) =>
+      ...[['all', 'Все'], ['abroad', 'Заграница'], ['S', 'СВ'], ['OP', 'ДИ'], ['OH', 'ДГ'], ['MB', 'ЦБ'], ['L', 'ЛБ']].map(([id, label]) =>
         h('button', {
           class: 'tab' + (filter === id ? ' on' : ''),
           onclick: () => { UI.sub.marketRole = id; UI.render(); },
         }, label))));
     let list = (g.market || []).map((m) => ({ m, p: g.players[m.playerId] })).filter((x) => x.p);
-    if (filter !== 'all') list = list.filter((x) => x.p.role === filter);
+    if (filter === 'abroad') list = list.filter((x) => x.m.abroad);
+    else if (filter !== 'all') list = list.filter((x) => x.p.role === filter);
     // сначала те, кого клуб реально может уговорить и потянуть по деньгам
     const pull = club.reputation + (3 - club.division) * 8 + club.mediaIndex * 0.2;
     list.forEach((x) => {
@@ -268,7 +269,7 @@
         h('span', { class: 'role-badge role-' + p.role, text: ROLES[p.role].short }),
         h('span', { class: 'grow' },
           h('div', { class: 'p-name', text: P.fullName(p) }),
-          h('div', { class: 'p-meta', text: UI.playerMeta(p) + (m.clubId ? ' · ' + g.clubs[m.clubId].name : ' · свободный агент') })),
+          h('div', { class: 'p-meta', text: UI.playerMeta(p) + ' · ' + (m.abroad ? m.from + ', ' + m.country : m.clubId ? g.clubs[m.clubId].name : 'свободный агент') })),
         h('span', { style: 'text-align:right' },
           h('div', { class: 'small' + (afford ? '' : ' bad'), text: m.ask ? U.money(m.ask) : 'свободен' }),
           h('div', { class: 'tiny dim', text: U.money(Tr.wageDemand(g, p, club.division)) + '/мес' }),
@@ -287,7 +288,9 @@
           h('div', { class: 'card flat tight' },
             h('div', { class: 'row between small' }, h('span', { class: 'muted' }, 'Цена'), h('b', entry.ask ? U.money(entry.ask) : 'свободный агент')),
             h('div', { class: 'row between small' }, h('span', { class: 'muted' }, 'Требует зарплату'), h('b', U.money(wage) + '/мес')),
-            h('div', { class: 'row between small' }, h('span', { class: 'muted' }, 'Ваш баланс'), h('b', U.money(club.finance.balance)))));
+            h('div', { class: 'row between small' }, h('span', { class: 'muted' }, 'Ваш баланс'), h('b', U.money(club.finance.balance))),
+            entry.abroad ? h('div', { class: 'row between small' }, h('span', { class: 'muted' }, 'Агентские (7%)'), h('b', U.money(Math.round(entry.ask * 0.07)))) : null),
+          entry.abroad ? h('div', { class: 'tiny dim mt', text: 'Переход из ' + entry.from + ' (' + entry.country + '). Игрок займёт место легионера в заявке.' }) : null);
         const actions = h('div', { class: 'btn-row mt' },
           entry.ask ? h('button', {
             class: 'btn', onclick: () => {
@@ -342,11 +345,13 @@
           class: 'p-row', style: 'width:100%;margin-bottom:6px;text-align:left',
           onclick: () => {
             const r = Tr.sell(g, p.id, o);
-            UI.toast(r.ok ? 'Продан за ' + U.money(r.fee) : r.reason);
+            UI.toast(r.ok ? (r.abroad ? 'Уехал за рубеж за ' : 'Продан за ') + U.money(r.fee) : r.reason);
             m.close(); UI.render();
           },
         },
-          h('span', { class: 'grow small', text: o.name }),
+          h('span', { class: 'grow' },
+            h('div', { class: 'small', text: o.name }),
+            o.abroad ? h('div', { class: 'tiny teal', text: o.country + ' · игрок уедет из лиги' }) : null),
           h('b', { text: U.money(o.fee) }))),
       ];
     });
@@ -567,6 +572,89 @@
       ];
     });
   }
+
+  /* ================= ТРИБУНЫ ================= */
+  UI.screenFans = function (scr) {
+    const g = UI.game;
+    const club = g.clubs[g.playerClubId];
+    const f = club.fans;
+    const F = S.Fans;
+    scr.appendChild(UI.pageHeader('Трибуны', 'club'));
+
+    const cap = W.arenaCapacity(club);
+    const att = Ec.attendance(g, club, null);
+    scr.appendChild(h('div', { class: 'card' },
+      h('div', { class: 'row between mb' },
+        h('div', null,
+          h('div', { class: 'tiny dim', text: 'НАСТРОЕНИЕ ТРИБУН' }),
+          h('div', { style: 'font-size:17px;font-weight:700', text: F.moodLabel(f.mood) })),
+        h('span', { class: 'pill ' + (f.mood >= 60 ? 'good' : f.mood >= 35 ? '' : 'bad'), text: Math.round(f.mood) + ' / 100' })),
+      h('div', { class: 'mood-gauge' },
+        h('i', { style: 'width:100%' }),
+        h('b', { style: 'left:calc(' + Math.round(f.mood) + '% - 1.5px)' })),
+      h('div', { class: 'row between tiny dim', style: 'margin-top:6px' },
+        h('span', { text: 'бойкот' }), h('span', { text: 'ядро поддержки ' + Math.round(f.loyalty) }), h('span', { text: 'праздник' }))));
+
+    scr.appendChild(h('div', { class: 'stat-grid mb' },
+      UI.stat(U.num(f.members), 'абонементов'),
+      UI.stat(U.num(att.count), 'придёт на матч'),
+      UI.stat(Math.round(F.support(g, club, att.fill) * 100) + '%', 'поддержка')));
+
+    scr.appendChild(h('div', { class: 'card tight tiny muted' },
+      'Поддержка трибун — это не только атмосфера: от неё зависит бонус своей площадки в движке матча. ' +
+      'Полный заряженный зал даёт заметное преимущество, полупустой почти ничего.'));
+
+    // любимец публики
+    const fav = f.favoriteId && g.players[f.favoriteId];
+    if (fav) {
+      scr.appendChild(h('div', { class: 'section-title', text: 'Любимец трибун' }));
+      scr.appendChild(h('div', { class: 'card tight' },
+        UI.playerRow(fav, club),
+        h('div', { class: 'tiny dim mt', text: 'Продажа такого игрока обвалит настроение трибун.' })));
+    }
+
+    // ожидания
+    scr.appendChild(h('div', { class: 'section-title', text: 'Чего ждут от сезона' }));
+    if (!f.demands.length) scr.appendChild(h('div', { class: 'empty', text: 'Ожидания появятся в начале сезона.' }));
+    f.demands.forEach((d) => {
+      const done = typeof d.check === 'function' ? d.check(g, club) : d.done;
+      scr.appendChild(h('div', { class: 'card tight row between' },
+        h('span', { class: 'small grow', text: d.text[0].toUpperCase() + d.text.slice(1) }),
+        h('span', { class: 'pill ' + (done ? 'good' : ''), text: done ? 'выполняется' : 'пока нет' })));
+    });
+    if (f.homeLosses) {
+      scr.appendChild(h('div', { class: 'tiny dim', style: 'padding:0 4px', text: 'Домашних поражений в сезоне: ' + f.homeLosses }));
+    }
+
+    // кричалки
+    scr.appendChild(h('div', { class: 'section-title', text: 'Кричалки сектора' }));
+    Object.values(F.CHANTS).forEach((c) => {
+      const has = f.chants.includes(c.id);
+      scr.appendChild(h('div', { class: 'card tight' + (has ? ' chant-card' : '') },
+        h('div', { class: 'row between' },
+          h('b', { class: has ? '' : 'dim', text: c.name }),
+          has ? h('button', {
+            class: 'btn sm ghost', onclick: () => {
+              S.Audio.resume();
+              S.Audio.startCrowd(0.85);
+              S.Audio.chant(4, 1);
+              setTimeout(() => S.Audio.stopCrowd(), 2200);
+              UI.toast('«' + c.text.replace('{club}', club.baseName) + '»');
+            },
+          }, 'Послушать') : h('span', { class: 'pill', text: 'не разучена' })),
+        h('div', { class: 'small' + (has ? '' : ' dim'), style: 'margin-top:4px', text: has ? '«' + c.text.replace('{club}', club.baseName) + '»' : 'откроется: ' + c.how })));
+    });
+
+    // журнал настроения
+    if (f.log && f.log.length) {
+      scr.appendChild(h('div', { class: 'section-title', text: 'Что двигало трибуны' }));
+      f.log.slice(0, 8).forEach((l) => {
+        scr.appendChild(h('div', { class: 'card tight row between' },
+          h('span', { class: 'small grow ellipsis', text: l.reason }),
+          h('b', { class: l.delta >= 0 ? 'good' : 'bad', text: (l.delta >= 0 ? '+' : '') + l.delta })));
+      });
+    }
+  };
 
   /* ================= ИСТОРИЯ ================= */
   UI.screenHistory = function (scr) {

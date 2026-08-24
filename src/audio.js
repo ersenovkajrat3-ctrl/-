@@ -155,6 +155,86 @@
         osc.start(t); osc.stop(t + 0.55);
       });
     },
+    /** кричалка трибун: ритмичные слоги — глухой удар голоса плюс хлопки */
+    chant(syllables = 4, strength = 1) {
+      if (!this.ctx || !this.enabled) return;
+      const ctx = this.ctx, t0 = ctx.currentTime;
+      const beat = 0.34;
+      for (let i = 0; i < syllables; i++) {
+        const t = t0 + i * beat;
+        // голос толпы: узкополосный шум с подъёмом по частоте
+        const src = ctx.createBufferSource();
+        src.buffer = this.noiseBuffer(0.4);
+        const bp = ctx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.setValueAtTime(300 + (i % 2) * 140, t);
+        bp.Q.value = 3.2;
+        const g = ctx.createGain();
+        const peak = 0.13 * strength * (0.5 + this.fill * 0.7);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(peak, t + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+        src.connect(bp); bp.connect(g); g.connect(this.master);
+        src.start(t); src.stop(t + 0.32);
+        // хлопок в ладоши на сильную долю
+        if (i % 2 === 0) {
+          const clap = ctx.createBufferSource();
+          clap.buffer = this.noiseBuffer(0.1);
+          const hp = ctx.createBiquadFilter();
+          hp.type = 'highpass'; hp.frequency.value = 1800;
+          const cg = ctx.createGain();
+          cg.gain.setValueAtTime(0.07 * strength, t);
+          cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+          clap.connect(hp); hp.connect(cg); cg.connect(this.master);
+          clap.start(t); clap.stop(t + 0.12);
+        }
+      }
+    },
+    /** овация: плотные аплодисменты с долгим хвостом */
+    applause(seconds = 2.4) {
+      if (!this.ctx || !this.enabled) return;
+      const ctx = this.ctx, t = ctx.currentTime;
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer(seconds + 0.4);
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 1100;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'peaking'; bp.frequency.value = 2400; bp.gain.value = 6;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(0.16, t + 0.25);
+      g.gain.setValueAtTime(0.16, t + seconds * 0.55);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+      src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(this.master);
+      src.start(t); src.stop(t + seconds + 0.2);
+    },
+    /** фанфара для церемонии награждения */
+    fanfare() {
+      if (!this.ctx || !this.enabled) return;
+      const ctx = this.ctx, t0 = ctx.currentTime;
+      const chords = [
+        { t: 0.00, f: [392.00, 493.88, 587.33], d: 0.36 },
+        { t: 0.34, f: [440.00, 554.37, 659.25], d: 0.30 },
+        { t: 0.64, f: [523.25, 659.25, 783.99], d: 1.10 },
+      ];
+      chords.forEach((c) => {
+        c.f.forEach((f, i) => {
+          const t = t0 + c.t;
+          const osc = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(f, t);
+          lp.type = 'lowpass';
+          lp.frequency.setValueAtTime(1400, t);
+          lp.frequency.linearRampToValueAtTime(3400, t + 0.12);
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.075 / (1 + i * 0.35), t + 0.05);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + c.d);
+          osc.connect(lp); lp.connect(g); g.connect(this.master);
+          osc.start(t); osc.stop(t + c.d + 0.05);
+        });
+      });
+      this.applause(3.2);
+    },
     click() {
       if (!this.ctx || !this.enabled) return;
       const ctx = this.ctx, t = ctx.currentTime;

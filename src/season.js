@@ -69,6 +69,10 @@
   function afterMatch(game, side, won, opts = {}) {
     const club = game.clubs[side.clubId];
     const rng = game._rng;
+    // трибуны реагируют на результат: с кем играли, дома или в гостях, что за турнир
+    S.Fans.afterMatch(game, club, {
+      won, home: !!opts.home, opponent: opts.opponent, competition: opts.competition, sets: opts.sets,
+    });
     const squad = side.order.concat(side.libero ? [side.libero] : []);
     squad.forEach((p) => {
       p.st.matches = 1;
@@ -92,6 +96,7 @@
   /** восстановление между турами */
   function weeklyRecovery(game) {
     Object.values(game.clubs).forEach((club) => {
+      S.Fans.weekly(game, club);
       // медийность сама по себе оседает к уровню, который держит дивизион и репутация клуба
       const base = S.Feed.mediaBaseline(club);
       club.mediaIndex = U.clamp(club.mediaIndex + (base - club.mediaIndex) * 0.09, 5, 99);
@@ -116,7 +121,15 @@
     const home = hForeign ? buildEuroSide(game, fx.h) : buildSide(game, fx.h);
     const away = aForeign ? buildEuroSide(game, fx.a) : buildSide(game, fx.a);
     const homeClub = game.clubs[fx.h], awayClub = game.clubs[fx.a];
+    // преимущество своей площадки дают трибуны: полупустой тихий зал почти не помогает
     let homeBonus = 1.6;
+    if (homeClub) {
+      const att = Ec.attendance(game, homeClub, team(game, fx.a));
+      fx.attendanceHint = att;
+      homeBonus = S.Fans.homeBonus(game, homeClub, att.fill);
+      if (!isFinite(homeBonus)) homeBonus = 1.6;
+      fx.support = S.Fans.support(game, homeClub, att.fill);
+    }
     // провокационный тон в ленте заводит соперника: он играет против клуба игрока злее
     if (homeClub && !homeClub.isPlayer && awayClub && awayClub.isPlayer && game.settings.tone === 'provoc') homeBonus += 1.4;
     if (homeClub && homeClub.isPlayer && awayClub && !awayClub.isPlayer && game.settings.tone === 'provoc') homeBonus -= 0.9;
@@ -133,8 +146,17 @@
   function finalizeMatch(game, fx, match) {
     const log = match.log;
     const home = match.home, away = match.away;
-    if (!isForeign(game, fx.h)) afterMatch(game, home, log.winner === home);
-    if (!isForeign(game, fx.a)) afterMatch(game, away, log.winner === away);
+    const sets = [home.sets, away.sets];
+    if (!isForeign(game, fx.h)) {
+      afterMatch(game, home, log.winner === home, {
+        home: true, opponent: team(game, fx.a), competition: fx.type, sets,
+      });
+    }
+    if (!isForeign(game, fx.a)) {
+      afterMatch(game, away, log.winner === away, {
+        home: false, opponent: team(game, fx.h), competition: fx.type, sets: [away.sets, home.sets],
+      });
+    }
     fx.result = {
       score: [home.sets, away.sets],
       setScores: log.setScores,
@@ -228,11 +250,27 @@
     });
     buildCup(game);
     buildEuro(game);
+    // трибуны: абонементы на сезон и ожидания
+    Object.values(game.clubs).forEach((c) => {
+      const sale = S.Fans.sellSeasonTickets(game, c);
+      S.Fans.makeDemands(game, c);
+      S.Fans.pickFavorite(game, c);
+      if (c.isPlayer) {
+        game.inbox.unshift({
+          week: 0, kind: 'fans',
+          text: 'Продано ' + U.num(sale.members) + ' ' + U.plural(sale.members, ['абонемент', 'абонемента', 'абонементов']) +
+            ' по ' + U.money(sale.price) + ' — клуб получил ' + U.money(sale.income) + '. Трибуны ждут: ' +
+            c.fans.demands.map((d) => d.text).join('; ') + '.',
+        });
+      }
+    });
     // клуб игрока: предложения спонсоров и задача от совета
     const club = game.clubs[game.playerClubId];
     if (club) {
       game.offers.sponsors = Ec.generateSponsorOffers(game, club, rng, 3);
+      const prevTrust = game.board && game.board.trust != null ? game.board.trust : 60;
       game.board = makeObjective(game, club);
+      game.board.trust = prevTrust;
       game.inbox.unshift({ week: 0, kind: 'board', text: 'Совет директоров ставит задачу на сезон: ' + game.board.text });
     }
     S.Transfers.openWindow(game, 'preseason');
@@ -299,6 +337,8 @@
       cup.winner = winners[0];
       const c = game.clubs[cup.winner];
       c.trophies.push({ season: game.seasonLabel, name: 'Кубок страны' });
+      S.Fans.onTrophy(game, c);
+      if (c.isPlayer) queueCeremony(game, { type: 'cup', title: 'Кубок страны', subtitle: 'Финал выигран', clubId: c.id });
       S.Feed.event(game, c, 'trophy', { trophy: 'Кубок страны', club: c.name }, 1.6);
       if (c.isPlayer) {
         Ec.ledger(c, 'prize', 'Призовые: Кубок страны', Ec.PRIZE_BASE * 0.18);
@@ -425,6 +465,9 @@
         eu.result = 'ПОБЕДА';
         Ec.ledger(club, 'prize', 'Призовые ' + cup.short + ': победа', Ec.euroPrize(eu.cupId, 'win'));
         club.trophies.push({ season: game.seasonLabel, name: cup.name });
+        S.Fans.onTrophy(game, club);
+        S.Fans.unlock(game, club, 'euro');
+        queueCeremony(game, { type: 'euro', title: cup.name, subtitle: '«Финал четырёх» выигран', clubId: club.id });
         S.Feed.event(game, club, 'trophy', { trophy: cup.name, club: club.name }, 2);
       } else {
         eu.result = 'Финал';
@@ -433,8 +476,75 @@
     }
   }
 
+  /* ---------- награды по итогам сезона ---------- */
+  /** символическая сборная дивизиона, MVP и личные номинации */
+  function seasonAwards(game, divisionId) {
+    const div = game.divisions[divisionId];
+    const pool = [];
+    div.clubIds.forEach((id) => {
+      const club = game.clubs[id];
+      club.squad.forEach((pid) => {
+        const p = game.players[pid];
+        if (p && p.season.matches >= 6) pool.push({ p, club });
+      });
+    });
+    if (!pool.length) return null;
+    const per = (x, key) => (x.p.season.sets ? x.p.season[key] / x.p.season.sets : 0);
+    const best = (role, key) => {
+      const list = pool.filter((x) => x.p.role === role).sort((a, b) => per(b, key) - per(a, key));
+      return list[0] || null;
+    };
+    const team = [
+      { role: 'S', label: 'связующий', pick: pool.filter((x) => x.p.role === 'S').sort((a, b) => (b.p.season.points + b.p.season.blocks * 2) - (a.p.season.points + a.p.season.blocks * 2))[0] },
+      { role: 'OP', label: 'диагональный', pick: best('OP', 'points') },
+      { role: 'OH', label: 'доигровщик', pick: best('OH', 'points') },
+      { role: 'OH', label: 'доигровщик', pick: pool.filter((x) => x.p.role === 'OH').sort((a, b) => per(b, 'points') - per(a, 'points'))[1] },
+      { role: 'MB', label: 'центральный', pick: best('MB', 'blocks') },
+      { role: 'MB', label: 'центральный', pick: pool.filter((x) => x.p.role === 'MB').sort((a, b) => per(b, 'blocks') - per(a, 'blocks'))[1] },
+      { role: 'L', label: 'либеро', pick: best('L', 'digs') },
+    ].filter((x) => x.pick);
+    // один игрок не может занять две позиции в символической сборной
+    const seen = new Set();
+    const teamUniq = team.filter((t) => (seen.has(t.pick.p.id) ? false : (seen.add(t.pick.p.id), true)));
+    // одна номинация на игрока, пока есть кем её закрыть: иначе весь список — один человек
+    const taken = new Set();
+    const takeBest = (list) => {
+      const free = list.find((x) => !taken.has(x.p.id));
+      const pick = free || list[0];
+      if (pick) taken.add(pick.p.id);
+      return pick;
+    };
+    const scorer = takeBest(pool.slice().sort((a, b) => b.p.season.points - a.p.season.points));
+    const blocker = takeBest(pool.slice().sort((a, b) => b.p.season.blocks - a.p.season.blocks));
+    const server = takeBest(pool.slice().sort((a, b) => b.p.season.aces - a.p.season.aces));
+    const libero = takeBest(pool.filter((x) => x.p.role === 'L').sort((a, b) => b.p.season.digs - a.p.season.digs));
+    // MVP — вклад в очки команды-призёра, а не просто набранные очки
+    const order = W.sortTable(div);
+    const mvp = pool.slice().sort((a, b) => {
+      const bonus = (x) => Math.max(0, 12 - order.indexOf(x.club.id)) * 6;
+      return (b.p.season.points + b.p.season.blocks * 2 + b.p.season.aces * 2 + bonus(b)) -
+        (a.p.season.points + a.p.season.blocks * 2 + a.p.season.aces * 2 + bonus(a));
+    })[0];
+    const card = (x, note) => x && { id: x.p.id, name: P.fullName(x.p), club: x.club.name, role: x.p.role, note };
+    return {
+      division: div.name,
+      team: teamUniq.map((t) => ({ label: t.label, player: card(t.pick) })),
+      mvp: card(mvp, 'самый ценный игрок'),
+      scorer: card(scorer, scorer.p.season.points + ' очков за сезон'),
+      blocker: card(blocker, blocker.p.season.blocks + ' блоков'),
+      server: card(server, server.p.season.aces + ' эйсов'),
+      libero: card(libero, libero ? libero.p.season.digs + ' мячей в защите' : ''),
+    };
+  }
+
+  /** церемонии показываются интерфейсом после того, как неделя досчитана */
+  function queueCeremony(game, ceremony) {
+    game.ceremonies = game.ceremonies || [];
+    game.ceremonies.push(Object.assign({ season: game.seasonLabel, week: game.week }, ceremony));
+  }
+
   S.Season = {
-    CUP_ROUNDS, PLAYOFF_WEEKS, EURO_KO, SEASON_END_WEEK, MONTH_WEEKS,
+    CUP_ROUNDS, queueCeremony, seasonAwards, PLAYOFF_WEEKS, EURO_KO, SEASON_END_WEEK, MONTH_WEEKS,
     team, isForeign, teamName, abstractMatch, buildSide, buildEuroSide, simMatch, createMatch, finalizeMatch, applyToTable,
     startSeason, seasonLabel, makeObjective, buildCup, scheduleCupRound, resolveCupWeek,
     buildEuro, seedEuroQual, applyEuroTable, euroStandings, advanceEuro,

@@ -45,6 +45,29 @@
     return Math.round(Math.max(base, player.contract.wage * 1.05) * (1 + (player.foreign ? 0.25 : 0.08)) / 1000) * 1000;
   }
 
+  /** Зарубежный рынок: клубы Италии, Польши, Турции и остальной Европы и продают, и покупают.
+      Их игроки идут в заявку легионерами, стоят дороже и просят больше — зато класс выше. */
+  function foreignMarket(game, rng) {
+    const list = [];
+    const pool = game.euroClubs.slice().sort((a, b) => b.power - a.power);
+    const count = 8;
+    for (let i = 0; i < count; i++) {
+      const club = rng.weighted(pool, (c) => Math.pow(c.power, 2.6));
+      const role = rng.pick(['S', 'OP', 'OH', 'OH', 'MB', 'MB', 'L']);
+      const level = U.clamp(club.power * 0.92 + rng.range(-5, 9), 42, 96);
+      const p = P.makePlayer(rng, role, level, { divisionId: 0, foreign: true });
+      p.abroadClub = club.id;
+      p.contract = { wage: P.wageFor(P.overall(p), 0), years: rng.int(1, 3) };
+      game.players[p.id] = p;
+      list.push({
+        playerId: p.id, clubId: null, abroad: true, from: club.name, country: club.country,
+        ask: Math.round(P.valueFor(p) * rng.range(1.15, 1.5) / 1e5) * 1e5,   // трансфер за границу дороже: агенты, налоги, переезд
+        ovr: P.overall(p),
+      });
+    }
+    return list;
+  }
+
   function buildMarket(game) {
     const rng = game._rng;
     const list = [];
@@ -73,7 +96,7 @@
     game.market = list.map((it) => {
       const p = game.players[it.playerId];
       return Object.assign(it, { ask: it.free ? 0 : askingPrice(game, p), ovr: P.overall(p) });
-    });
+    }).concat(foreignMarket(game, rng));
   }
 
   /* ---------- покупка ---------- */
@@ -92,6 +115,7 @@
     const entry = game.market.find((m) => m.playerId === playerId);
     if (!club || !player || !entry) return { ok: false, reason: 'Игрок больше не доступен.' };
     if (!game.window || !game.window.open) return { ok: false, reason: 'Трансферное окно закрыто.' };
+    if (club.transferFreeze > 0) return { ok: false, reason: 'Совет заморозил трансферы: осталось ' + club.transferFreeze + ' мес.' };
     const problems = canSign(game, club, player);
     if (problems.length) return { ok: false, reason: problems.join(' ') };
     const fee = opts.fee != null ? opts.fee : entry.ask;
@@ -104,7 +128,11 @@
     if (wage < wageDemand(game, player, club.division) * 0.95) return { ok: false, reason: 'Игрок хочет больше денег.' };
     // сделка
     if (fee > 0) {
-      Ec.ledger(club, 'transfer', 'Покупка: ' + P.fullName(player), -fee);
+      Ec.ledger(club, 'transfer', (entry.abroad ? 'Покупка из-за рубежа: ' : 'Покупка: ') + P.fullName(player), -fee);
+      if (entry.abroad) {
+        const agents = Math.round(fee * 0.07);
+        Ec.ledger(club, 'transfer', 'Агентские и оформление перехода', -agents);
+      }
       if (entry.clubId && game.clubs[entry.clubId]) {
         const seller = game.clubs[entry.clubId];
         Ec.ledger(seller, 'transfer', 'Продажа: ' + P.fullName(player), fee);
@@ -118,6 +146,7 @@
     club.squad.push(playerId);
     game.market = game.market.filter((m) => m.playerId !== playerId);
     W.autoLineupAvailable(game, club);
+    S.Fans.onTransferIn(game, club, player);
     if (club.isPlayer) {
       S.Feed.event(game, club, 'transferIn', {
         player: P.fullName(player), role: S.ROLES[player.role].full, club: club.name, fee: fee ? U.money(fee) : 'свободный агент',
@@ -156,10 +185,19 @@
       const pull = c.reputation + (3 - c.division) * 8;
       return ovr <= pull * 0.95 + 10 && ovr >= pull * 0.45;
     });
-    return rng.shuffle(buyers).slice(0, 3).map((c) => ({
+    const offers = rng.shuffle(buyers).slice(0, 3).map((c) => ({
       clubId: c.id, name: c.name,
       fee: Math.round(P.valueFor(player) * rng.range(0.72, 1.25) / 1e5) * 1e5,
-    })).sort((a, b) => b.fee - a.fee);
+    }));
+    // зарубежные клубы платят больше, но игрок уезжает из страны насовсем
+    const abroad = game.euroClubs.filter((c) => ovr >= c.power * 0.78 && ovr <= c.power * 1.15);
+    rng.shuffle(abroad).slice(0, ovr >= 74 ? 2 : 1).forEach((c) => {
+      offers.push({
+        clubId: c.id, name: c.name, abroad: true, country: c.country,
+        fee: Math.round(P.valueFor(player) * rng.range(1.05, 1.55) / 1e5) * 1e5,
+      });
+    });
+    return offers.sort((a, b) => b.fee - a.fee);
   }
 
   function sell(game, playerId, offer) {
@@ -170,7 +208,26 @@
       return { ok: false, reason: 'Нельзя продать: в амплуа «' + S.ROLES[player.role].name.toLowerCase() + '» не останется замены.' };
     }
     const buyer = game.clubs[offer.clubId];
-    Ec.ledger(club, 'transfer', 'Продажа: ' + P.fullName(player), offer.fee);
+    Ec.ledger(club, 'transfer', (offer.abroad ? 'Продажа за рубеж: ' : 'Продажа: ') + P.fullName(player), offer.fee);
+    if (offer.abroad) {
+      // игрок уходит в зарубежный клуб и выпадает из внутреннего рынка
+      game.euroSquads = game.euroSquads || {};
+      const squad = game.euroSquads[offer.clubId];
+      if (squad) squad.push(playerId);
+      player.clubId = offer.clubId;
+      player.abroadClub = offer.clubId;
+      club.squad = club.squad.filter((id) => id !== playerId);
+      S.Fans.onTransferOut(game, club, player);
+      W.autoLineupAvailable(game, club);
+      if (club.isPlayer) {
+        game.inbox.unshift({
+          week: game.week, kind: 'transfer',
+          text: P.fullName(player) + ' продан в ' + offer.name + ' (' + offer.country + ') за ' + U.money(offer.fee) + '.',
+        });
+        S.Feed.event(game, club, 'transferOut', { player: P.fullName(player), club: club.name, fee: U.money(offer.fee) }, 1.2);
+      }
+      return { ok: true, fee: offer.fee, abroad: true };
+    }
     if (buyer) {
       Ec.ledger(buyer, 'transfer', 'Покупка: ' + P.fullName(player), -offer.fee);
       buyer.squad.push(playerId);
@@ -178,6 +235,7 @@
       player.contract.wage = wageDemand(game, player, buyer.division);
       W.autoLineupAvailable(game, buyer);
     }
+    S.Fans.onTransferOut(game, club, player);
     club.squad = club.squad.filter((id) => id !== playerId);
     W.autoLineupAvailable(game, club);
     if (club.isPlayer) {
@@ -260,6 +318,6 @@
 
   S.Transfers = {
     openWindow, closeWindow, buildMarket, askingPrice, wageDemand, canSign, buy, haggle,
-    offersFor, sell, release, fillSquad, aiTick, aiOffseason, squadOf, foreignCount, countRole, MIN_BY_ROLE,
+    offersFor, sell, release, fillSquad, aiTick, aiOffseason, squadOf, foreignCount, countRole, MIN_BY_ROLE, foreignMarket,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

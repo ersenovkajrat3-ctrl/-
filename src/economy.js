@@ -26,15 +26,19 @@
   function attendance(game, club, opponent) {
     const cap = S.World.arenaCapacity(club);
     const div = DIVISIONS[club.division];
+    const fans = club.fans;
     const formWins = club.form.slice(-5).filter((f) => f === 'w').length;
-    let fill = 0.34 + club.fanMood / 260 + formWins * 0.055 + club.mediaIndex / 420;
+    let fill = 0.30 + fans.mood / 250 + formWins * 0.055 + club.mediaIndex / 420;
     const oppRep = opponent ? (opponent.reputation != null ? opponent.reputation : opponent.power) : null;
     if (oppRep != null) fill += U.clamp((oppRep - 55) / 320, -0.05, 0.14);
     // цена билета: дороже ожидаемой — зал пустее
     const expected = 300 + club.reputation * 12;
     fill *= U.clamp(1.25 - (club.ticketPrice / expected) * 0.42, 0.45, 1.2);
-    fill = U.clamp(fill, 0.18, 0.99);
-    return { count: Math.round(cap * fill), fill, cap };
+    fill = U.clamp(fill, 0.12, 0.99);
+    // абонементы — гарантированный пол посещаемости: эти люди придут в любую погоду
+    const floor = Math.min(cap, fans.members * 0.9);
+    const count = Math.max(Math.round(cap * fill), Math.round(floor));
+    return { count, fill: count / cap, cap, members: fans.members };
   }
 
   function matchdayIncome(game, club, opponent) {
@@ -43,8 +47,8 @@
     const vip = club.arena.vip * 45 * club.ticketPrice * 4; // ложи продаются пакетами
     const total = Math.round(tickets + vip);
     ledger(club, 'tickets', 'Домашний матч: билеты' + (club.arena.vip ? ' и ложи' : ''), total);
-    // настроение болельщиков реагирует на заполняемость
-    club.fanMood = U.clamp(club.fanMood + (att.fill > 0.8 ? 0.4 : -0.3), 5, 100);
+    // полный зал сам по себе поднимает настроение, пустой — гасит
+    S.Fans.shift(game, club, att.fill > 0.82 ? 0.5 : att.fill < 0.45 ? -0.4 : 0);
     return { total, attendance: att };
   }
 
@@ -78,6 +82,7 @@
     const upkeep = Math.round(S.World.arenaCapacity(club) * 220 + club.arena.vip * 180000 + club.arena.media * 240000 + club.arena.base * 300000);
     ledger(club, 'upkeep', 'Содержание арены и базы', -upkeep);
     out.push({ label: 'Инфраструктура', amount: -upkeep });
+    if (club.transferFreeze > 0) club.transferFreeze--;
     // контракты спонсоров тикают
     club.finance.sponsors.forEach((s) => { s.monthsLeft--; });
     const expired = club.finance.sponsors.filter((s) => s.monthsLeft <= 0);

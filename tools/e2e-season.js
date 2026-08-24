@@ -17,11 +17,20 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8899';
   await page.click('text=Возглавить клуб');
   await page.waitForSelector('.tabbar');
 
-  const clickIf = async (sel) => { const b = await page.$(sel); if (b) { await b.click(); await page.waitForTimeout(120); return true; } return false; };
+  // кликаем по селектору, а не по хэндлу: интерфейс перерисовывается между кадрами
+  const clickIf = async (sel) => {
+    if (!(await page.$(sel))) return false;
+    try { await page.click(sel, { timeout: 3000 }); } catch (e) { return false; }
+    await page.waitForTimeout(120);
+    return true;
+  };
+  // церемония награждения перекрывает экран — закрываем её кнопкой
+  const closeCeremony = async () => clickIf('.overlay.ceremony button');
 
   let seasonDone = false;
   for (let i = 0; i < 260; i++) {
     // любое всплывающее окно закрываем его же основной кнопкой
+    if (await closeCeremony()) { await page.waitForTimeout(150); continue; }
     const modal = await page.$('.modal-back');
     if (modal) {
       if (await page.$('.modal button:has-text("Начать сезон")')) { seasonDone = true; break; }
@@ -45,6 +54,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:8899';
   await page.screenshot({ path: path.join(__dirname, '../.shots/s1-итоги.png') });
   const rep = await page.$eval('.modal', (e) => e.textContent.slice(0, 200)).catch(() => 'нет модалки итогов');
   console.log('итоги сезона:', rep.replace(/\s+/g, ' '));
+  await closeCeremony();
   await clickIf('.modal button:has-text("Начать сезон")');
   await page.waitForTimeout(500);
   const st = await page.evaluate(() => {

@@ -51,7 +51,7 @@
 
   function makeClub(rng, seed, index) {
     const [name, city, tier, strength, capacity] = seed;
-    return {
+    const club = {
       id: 'c' + index,
       name, baseName: name, city, tier, division: tier,
       strength, level: 0,
@@ -61,7 +61,6 @@
       finance: { balance: 0, debt: 0, loanMonthly: 0, loanMonths: 0, sponsors: [], seasonIncome: 0, seasonSpend: 0, ledger: [] },
       squad: [], lineup: [], liberoId: null, tactics: null,
       mediaIndex: U.clamp(Math.round(strength * 0.7 + rng.range(-6, 6)), 5, 95),
-      fanMood: 55,
       tone: 'calm',
       isPlayer: false,
       autoRotate: true,
@@ -70,6 +69,8 @@
       history: [],
       aiSkill: U.clamp(strength / 100 + rng.range(-0.1, 0.1), 0.2, 0.95),
     };
+    club.fans = S.Fans.makeFans(rng, club);
+    return club;
   }
 
   /** сила клуба для абстрактных прикидок (еврокубковый пул, скаутинг) */

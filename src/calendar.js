@@ -57,6 +57,12 @@
     if (pid && (fx.h === pid || fx.a === pid)) {
       const club = game.clubs[pid];
       const win = (fx.h === pid) === (res.score[0] > res.score[1]);
+      const oppId = fx.h === pid ? fx.a : fx.h;
+      if (win && game.clubs[oppId]) {
+        club.fans.beatenRivals = club.fans.beatenRivals || [];
+        if (!club.fans.beatenRivals.includes(oppId)) club.fans.beatenRivals.push(oppId);
+        if (club.fans.demands.some((d) => d.rivalId === oppId)) S.Fans.unlock(game, club, 'derby');
+      }
       const oppName = Sn.teamName(game, fx.h === pid ? fx.a : fx.h);
       const scoreStr = (fx.h === pid ? res.score : [res.score[1], res.score[0]]).join(':');
       const streak = club.form.slice().reverse().findIndex((f) => f !== (win ? 'w' : 'l'));
@@ -102,10 +108,10 @@
         if (club.isPlayer) {
           events.push({ kind: 'finance', items: out });
           out.forEach((o) => {
-            if (o.built) S.Feed.event(game, club, 'arena', { object: o.built.name }, 1.2);
+            if (o.built) { S.Feed.event(game, club, 'arena', { object: o.built.name }, 1.2); S.Fans.onArena(game, club, o.built.name); }
             if (o.expired) game.inbox.unshift({ week: game.week, kind: 'sponsor', text: o.label + '. Нужен новый партнёр.' });
           });
-          checkBankruptcy(game, club, events);
+          checkFinances(game, club);
         }
       });
       // в середине сезона спонсоры выходят на связь заново
@@ -128,16 +134,34 @@
     return events;
   }
 
-  function checkBankruptcy(game, club, events) {
-    if (club.finance.balance < 0) {
-      club.finance.negativeMonths = (club.finance.negativeMonths || 0) + 1;
-      if (club.finance.negativeMonths >= 3) {
-        game.inbox.unshift({ week: game.week, kind: 'board', text: 'Совет директоров: третий месяц подряд минус на счёте. Ещё один — и с вами расстанутся.' });
-      } else {
-        game.inbox.unshift({ week: game.week, kind: 'board', text: 'Баланс клуба ушёл в минус (' + U.money(club.finance.balance) + '). Совет ждёт объяснений.' });
-      }
-      if (club.finance.negativeMonths >= 4) { game.dismissed = { reason: 'финансы' }; }
-    } else club.finance.negativeMonths = 0;
+  /* Тренера в «Сетке» не увольняют: совет может быть недоволен, урезать бюджет и
+     потребовать объяснений, но карьера продолжается — партия не обрывается на полуслове. */
+  function checkFinances(game, club) {
+    if (club.finance.balance >= 0) { club.finance.negativeMonths = 0; return; }
+    club.finance.negativeMonths = (club.finance.negativeMonths || 0) + 1;
+    const n = club.finance.negativeMonths;
+    if (n >= 3) {
+      // учредитель закрывает дыру, но доверие падает, а трансферы замораживаются
+      const rescue = Math.abs(club.finance.balance);
+      Ec.ledger(club, 'founder', 'Экстренная помощь учредителя', rescue);
+      trust(game, -12);
+      club.finance.negativeMonths = 0;
+      club.transferFreeze = 2;
+      game.inbox.unshift({
+        week: game.week, kind: 'board',
+        text: 'Совет директоров закрыл минус на счёте (' + U.money(rescue) + '), но заморозил трансферы на два месяца. ' +
+          'Доверие к вам упало до ' + Math.round(game.board.trust) + '.',
+      });
+    } else {
+      game.inbox.unshift({ week: game.week, kind: 'board', text: 'Баланс клуба в минусе (' + U.money(club.finance.balance) + '). Совет ждёт объяснений.' });
+    }
+  }
+
+  /** доверие совета: влияет на тон сообщений и на задачу следующего сезона, но не на вашу работу */
+  function trust(game, delta) {
+    if (!game.board) return 60;
+    game.board.trust = U.clamp((game.board.trust != null ? game.board.trust : 60) + delta, 0, 100);
+    return game.board.trust;
   }
 
   /* ---------- плей-офф ---------- */
@@ -259,6 +283,13 @@
         st.stage = 'done';
         const champ = game.clubs[st.champion];
         champ.trophies.push({ season: game.seasonLabel, name: d.name });
+        S.Fans.onTrophy(game, champ);
+        if (champ.isPlayer) {
+          Sn.queueCeremony(game, {
+            type: 'league', title: d.name, subtitle: 'Чемпионский титул', clubId: champ.id,
+            awards: Sn.seasonAwards(game, d.id),
+          });
+        }
         S.Feed.event(game, champ, 'trophy', { trophy: d.name, club: champ.name }, 1.8);
       }
     });
@@ -267,7 +298,7 @@
   /* ---------- межсезонье ---------- */
   function endSeason(game) {
     const rng = game._rng;
-    const report = { season: game.seasonLabel, divisions: [], player: {}, dismissed: false };
+    const report = { season: game.seasonLabel, divisions: [], player: {} };
     const playerClub = game.clubs[game.playerClubId];
     const nextQual = { ucl: [], cev: [], ch: [] };
 
@@ -309,11 +340,28 @@
         if (rel && s.penaltyRelegation) Ec.ledger(playerClub, 'sponsor', 'Штраф спонсора за вылет: ' + s.brand, -s.penaltyRelegation);
       });
       report.player = { position: pos, champion: st.champion === playerClub.id, relegated: rel, euro, objective: game.board };
-      // оценка совета директоров
-      if (game.board && pos > game.board.fail) {
-        report.dismissed = true;
-        game.dismissed = { reason: 'результат', position: pos };
+      // оценка совета директоров: доверие, а не увольнение
+      if (game.board) {
+        const met = pos <= game.board.target;
+        const failed = pos > game.board.fail;
+        trust(game, met ? 14 : failed ? -18 : 4);
+        report.board = {
+          met, failed, trust: Math.round(game.board.trust),
+          text: met ? 'Совет доволен: задача сезона выполнена.'
+            : failed ? 'Совет недоволен результатом, но контракт с вами продлён — работу продолжаете вы.'
+              : 'Совет считает сезон приемлемым.',
+        };
       }
+    }
+
+    // трибуны подводят свои итоги
+    if (playerClub) {
+      report.fans = {
+        demands: S.Fans.checkDemands(game, playerClub),
+        mood: Math.round(playerClub.fans.mood),
+        members: playerClub.fans.members,
+      };
+      report.awards = Sn.seasonAwards(game, playerClub.division);
     }
 
     // переходы между дивизионами
@@ -322,10 +370,17 @@
       r.promoted.forEach((id) => { game.clubs[id].division = Math.max(0, game.clubs[id].division - 1); game.clubs[id].tier = game.clubs[id].division; });
       r.promoted.forEach((id) => {
         const c = game.clubs[id];
+        S.Fans.onPromotion(game, c);
+        if (c.isPlayer) {
+          Sn.queueCeremony(game, {
+            type: 'promotion', title: DIVISIONS[c.division].name, subtitle: 'Клуб поднимается дивизионом выше', clubId: c.id,
+          });
+        }
         S.Feed.event(game, c, 'promo', { division: DIVISIONS[c.division].name, club: c.name }, 1.6);
       });
       r.relegated.forEach((id) => {
         const c = game.clubs[id];
+        S.Fans.onRelegation(game, c);
         S.Feed.event(game, c, 'releg', { division: DIVISIONS[c.division].name, club: c.name }, 1.4, { positive: false });
       });
     });
@@ -367,6 +422,7 @@
       }
       // добор состава, если кого-то не хватает по амплуа
       S.Transfers.fillSquad(game, club);
+      S.Fans.pickFavorite(game, club);
       club.reputation = U.clamp(club.reputation * 0.85 + W.clubPower(game, club) * 0.15, 20, 95);
       club.level = U.clamp(W.clubPower(game, club) * 0.9 + club.level * 0.1, 30, 90);
       W.autoLineupAvailable(game, club);
@@ -382,6 +438,6 @@
 
   Object.assign(S.Season, {
     weekLabel, startWeek, nextPlayerFixture, playFixture, completeWeek, applyFixtureResult,
-    buildPlayoffs, advancePlayoffs, endSeason, seriesById, seriesDecided, makeSeries,
+    buildPlayoffs, advancePlayoffs, endSeason, seriesById, seriesDecided, makeSeries, trust,
   });
 })(typeof window !== 'undefined' ? window : globalThis);

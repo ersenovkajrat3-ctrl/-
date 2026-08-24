@@ -42,6 +42,22 @@ const path = require('path');
   await page.click('.tabs .tab:has-text("Заявка")'); await page.waitForTimeout(300); await shot('заявка');
   await page.click('.tabbar button:nth-child(1)');
   await page.click('text=Финансы'); await page.waitForTimeout(300); await shot('финансы');
+  await page.click('.tabbar button:nth-child(1)');
+  await page.click('text=Трибуны'); await page.waitForTimeout(400); await shot('трибуны');
+  // церемония награждения: показываем принудительно, чтобы проверить сцену
+  await page.evaluate(() => {
+    const S = window.SETKA, g = S.UI.game;
+    S.Ceremony.show(g, {
+      type: 'league', title: 'Суперлига', subtitle: 'Чемпионский титул',
+      clubId: g.playerClubId, awards: S.Season.seasonAwards(g, g.clubs[g.playerClubId].division),
+    }, () => {});
+  });
+  await page.waitForTimeout(900); await shot('церемония');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const cerText = await page.$eval('.cer-stage', (e) => e.textContent.slice(0, 90)).catch(() => 'нет сцены');
+  console.log('церемония:', cerText.replace(/\s+/g, ' '));
+  await page.click('.overlay.ceremony button');
+  await page.waitForTimeout(300);
   const info = await page.evaluate(() => {
     const g = window.SETKA.UI.game;
     return { week: g.week, phase: g.phase, euro: g.euro ? g.euro.name + '/' + (g.euro.result || g.euro.stage) : 'нет', cup: !!g.cup.winner, playoffs: !!g.playoffs };
