@@ -125,8 +125,16 @@
     return Math.round(base * mult / 1e5) * 1e5;
   }
 
+  /** бренды, уже занятые другими клубами: два «Севергаза» в одной лиге выглядят ошибкой */
+  function usedBrands(game) {
+    const set = new Set();
+    Object.values(game.clubs).forEach((c) => c.finance.sponsors.forEach((s) => set.add(s.brand)));
+    return set;
+  }
+
   function generateSponsorOffers(game, club, rng, count) {
     const offers = [];
+    const taken = usedBrands(game);
     const has = (t) => club.finance.sponsors.some((s) => s.type === t);
     const types = ['title', 'kit', 'local'].filter((t) => !has(t));
     for (const type of types) {
@@ -134,7 +142,10 @@
       if (club.division > meta.minDivision) continue;
       if (club.mediaIndex < meta.minMedia) continue;
       if (!rng.chance(type === 'title' ? 0.55 + club.mediaIndex / 300 : 0.85)) continue;
-      const brand = rng.pick(SPONSOR_BRANDS[type]);
+      const free = SPONSOR_BRANDS[type].filter((b) => !taken.has(b));
+      if (!free.length) continue;
+      const brand = rng.pick(free);
+      taken.add(brand);
       const monthly = Math.round(sponsorValue(club, type) * rng.range(0.85, 1.2) / 1e5) * 1e5;
       offers.push({
         id: 'so' + U.id(), type, brand, monthly,
@@ -237,7 +248,7 @@
 
   S.Economy = {
     ledger, wageBill, sponsorIncome, attendance, matchdayIncome, monthlyTick,
-    prizeMoney, euroPrize, founderSupport, generateSponsorOffers, signSponsor, breakSponsor, sponsorValue,
+    prizeMoney, euroPrize, founderSupport, usedBrands, generateSponsorOffers, signSponsor, breakSponsor, sponsorValue,
     upgradeCost, startUpgrade, takeLoan, loanLimit, summary, renameFor, restoreName, PRIZE_BASE, TIER_COST,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

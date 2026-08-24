@@ -225,7 +225,13 @@
       const done = st.series.every((s) => s.winner);
       if (!done) return;
       const order = st.order;
+      // сыгранные раунды сохраняем, чтобы в интерфейсе была видна вся сетка, а не только текущая стадия
+      const archive = () => {
+        st.history = st.history || [];
+        st.history.push({ stage: st.stage, stageName: st.series[0] ? st.series[0].stageName : '', series: st.series.slice() });
+      };
       if (st.stage === 'qual' && wk >= Sn.PLAYOFF_WEEKS.qual) {
+        archive();
         const winners = st.series.map((s) => s.winner);
         const bySeed = (id) => order.indexOf(id);
         winners.sort((a, b) => bySeed(a) - bySeed(b));
@@ -233,17 +239,20 @@
         st.series = makeSeries(game, d.id, 'qf', '1/4 финала', pairs, 2, Sn.PLAYOFF_WEEKS.qf);
         st.stage = 'qf';
       } else if (st.stage === 'qf' && wk >= Sn.PLAYOFF_WEEKS.qf) {
+        archive();
         const w = st.series.map((s) => s.winner);
         const pairs = [[w[0], w[3]], [w[1], w[2]]];
         st.series = makeSeries(game, d.id, 'sf', '1/2 финала', pairs, d.id === 0 ? 3 : 2, Sn.PLAYOFF_WEEKS.sf);
         st.stage = 'sf';
       } else if (st.stage === 'sf' && wk >= Sn.PLAYOFF_WEEKS.sf) {
+        archive();
         const w = st.series.map((s) => s.winner);
         const losers = st.series.map((s) => s.loser);
         st.thirdPlace = losers;
         st.series = makeSeries(game, d.id, 'final', 'Финал ' + d.name, [[w[0], w[1]]], 3, Sn.PLAYOFF_WEEKS.final);
         st.stage = 'final';
       } else if (st.stage === 'final' && wk >= Sn.PLAYOFF_WEEKS.final) {
+        archive();
         const s = st.series[0];
         st.champion = s.winner;
         st.runnerUp = s.loser;

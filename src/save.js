@@ -19,6 +19,17 @@
       return c;
     });
     clone.results = (game.results || []).slice(0, 150);
+    clone.feed = (game.feed || []).slice(0, 60);
+    // st — черновая статистика текущего матча, её незачем хранить
+    const players = {};
+    for (const id in game.players) {
+      const p = game.players[id];
+      const c = Object.assign({}, p);
+      delete c.st;
+      if (c.history && !c.history.length) delete c.history;
+      players[id] = c;
+    }
+    clone.players = players;
     return clone;
   }
 
@@ -43,6 +54,7 @@
       if (!raw) return null;
       const game = JSON.parse(raw);
       game._rng = S.RNG.load(game.rngState || { seed: game.seed || 1 });
+      Object.values(game.players).forEach((p) => { if (!p.st) p.st = S.Players.emptyStats(); if (!p.history) p.history = []; });
       S.U.resetIds(game.idSeq || 100000);
       return game;
     } catch (e) {

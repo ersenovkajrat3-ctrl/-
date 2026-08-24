@@ -193,13 +193,18 @@
     });
 
     // стартовые спонсорские контракты у всех клубов, иначе лига уходит в минус с первого месяца
+    const takenBrands = new Set();
     Object.values(game.clubs).forEach((club) => {
       const types = ['local', 'kit'];
       if (club.mediaIndex >= 55 && club.division <= 1) types.push('title');
       types.forEach((type) => {
         const meta = S.SPONSOR_TYPES[type];
         if (club.division > meta.minDivision) return;
-        const brand = rng.pick(S.SPONSOR_BRANDS[type]);
+        const free = S.SPONSOR_BRANDS[type].filter((b) => !takenBrands.has(b));
+        if (!free.length) return;
+        const brand = rng.pick(free);
+        if (type !== 'local') takenBrands.add(brand); // локальных партнёров может быть много одноимённых сетей
+
         const monthly = Math.round(S.Economy.sponsorValue(club, type) * rng.range(0.85, 1.1) / 1e5) * 1e5;
         club.finance.sponsors.push({
           id: 'sc' + U.id(), type, brand, monthly, monthsLeft: rng.int(4, 22), years: 2,

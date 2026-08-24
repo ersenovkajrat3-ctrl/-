@@ -112,9 +112,21 @@
       scr.appendChild(h('div', { class: 'empty', text: 'Плей-офф начнётся после регулярного чемпионата (неделя ' + W.PLAYOFF_START + ').' }));
       return;
     }
-    const st = g.playoffs.byDiv[club.division];
-    scr.appendChild(h('div', { class: 'section-title', text: DIVISIONS[club.division].name + ' · ' + stageName(st.stage) }));
-    st.series.forEach((s) => scr.appendChild(seriesCard(g, s, club)));
+    let divId = UI.sub.poDiv != null ? UI.sub.poDiv : club.division;
+    scr.appendChild(h('div', { class: 'tabs' },
+      ...DIVISIONS.map((d) => h('button', {
+        class: 'tab' + (divId === d.id ? ' on' : ''),
+        onclick: () => { UI.sub.poDiv = d.id; UI.render(); },
+      }, d.short))));
+    const st = g.playoffs.byDiv[divId];
+    (st.history || []).forEach((round) => {
+      scr.appendChild(h('div', { class: 'section-title', text: round.stageName || stageName(round.stage) }));
+      round.series.forEach((s) => scr.appendChild(seriesCard(g, s, club)));
+    });
+    if (st.stage !== 'done') {
+      scr.appendChild(h('div', { class: 'section-title', text: stageName(st.stage) }));
+      st.series.forEach((s) => scr.appendChild(seriesCard(g, s, club)));
+    }
     if (st.champion) {
       scr.appendChild(h('div', { class: 'card center' },
         h('div', { class: 'tiny dim', text: 'ЧЕМПИОН' }),

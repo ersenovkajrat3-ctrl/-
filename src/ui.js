@@ -118,7 +118,7 @@
       h('div', { class: 'tb-sub', text: DIVISIONS[club.division].name + ' · сезон ' + g.seasonLabel })));
     bar.appendChild(h('div', { class: 'tb-right' },
       h('div', { class: 'tb-money' + (fin.balance < 0 ? ' bad' : ''), text: U.money(fin.balance) }),
-      h('div', { class: 'tb-week', text: g.week ? 'неделя ' + g.week + ' · ' + U.dateLabel(g.week * 7) : 'межсезонье' })));
+      h('div', { class: 'tb-week', text: g.week ? 'неделя ' + g.week + ' · ' + U.dateLabel(g.week * 7) : (g.phase === 'offseason' ? 'межсезонье' : 'предсезон') })));
   }
 
   function tabbar() {
