@@ -106,5 +106,39 @@
     return svg;
   }
 
-  S.Crest = { crestSvg, crestNode, shirtSvg, kitFill, SHAPES, el };
+  const SKIN = ['#e8b48c', '#d79a6f', '#c98a5e', '#f0c9a6', '#a8704a'];
+
+  /**
+   * Фигурка волейболиста: майка клуба, номер, руки внизу и поднятые.
+   * Одна и та же используется на площадке и на церемонии награждения.
+   */
+  function figure(o) {
+    const kit = o.kit, ink = o.ink || '#12203a', skin = o.skin || SKIN[0];
+    const shorts = o.shorts || '#1b2233';
+    const g = el('g', { class: o.cls || 'figure' });
+    g.appendChild(el('ellipse', { cx: 0, cy: 0.6, rx: 5.2, ry: 1.9, fill: 'rgba(0,0,0,.32)' }));
+    g.appendChild(el('rect', { x: -2.7, y: -7.2, width: 2.1, height: 7.4, rx: 1, fill: skin }));
+    g.appendChild(el('rect', { x: 0.6, y: -7.2, width: 2.1, height: 7.4, rx: 1, fill: skin }));
+    g.appendChild(el('rect', { x: -3.6, y: -10.2, width: 7.2, height: 3.8, rx: 1.2, fill: shorts }));
+    const armsDown = el('g', { class: 'arms-down' });
+    armsDown.appendChild(el('rect', { x: -5.9, y: -15.2, width: 1.9, height: 6.4, rx: 0.95, fill: skin }));
+    armsDown.appendChild(el('rect', { x: 4.0, y: -15.2, width: 1.9, height: 6.4, rx: 0.95, fill: skin }));
+    g.appendChild(armsDown);
+    const armsUp = el('g', { class: 'arms-up' });
+    armsUp.appendChild(el('rect', { x: -6.2, y: -21.4, width: 1.9, height: 7.4, rx: 0.95, fill: skin, transform: 'rotate(-12 -5.2 -14)' }));
+    armsUp.appendChild(el('rect', { x: 4.3, y: -21.4, width: 1.9, height: 7.4, rx: 0.95, fill: skin, transform: 'rotate(12 5.2 -14)' }));
+    g.appendChild(armsUp);
+    g.appendChild(el('rect', { x: -4.3, y: -16.4, width: 8.6, height: 6.8, rx: 2.2, fill: kit }));
+    g.appendChild(el('rect', { x: -4.3, y: -16.4, width: 8.6, height: 1.6, rx: 0.8, fill: 'rgba(255,255,255,.35)' }));
+    if (o.number != null) {
+      g.appendChild(el('text', {
+        x: 0, y: -11.4, 'text-anchor': 'middle', 'font-size': 4.2, 'font-weight': 800, fill: ink,
+      }, String(o.number)));
+    }
+    g.appendChild(el('circle', { cx: 0, cy: -19.1, r: 2.75, fill: skin }));
+    g.appendChild(el('path', { d: 'M-2.75 -19.6a2.75 2.75 0 015.5 0z', fill: 'rgba(20,14,8,.55)' }));
+    return g;
+  }
+
+  S.Crest = { crestSvg, crestNode, shirtSvg, kitFill, figure, SKIN, SHAPES, el };
 })(typeof window !== 'undefined' ? window : globalThis);

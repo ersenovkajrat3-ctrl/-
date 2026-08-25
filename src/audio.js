@@ -235,6 +235,61 @@
       });
       this.applause(3.2);
     },
+    /** свист взлетающей ракеты */
+    rocket(seconds = 0.9) {
+      if (!this.ctx || !this.enabled) return;
+      const ctx = this.ctx, t = ctx.currentTime;
+      const osc = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(380, t);
+      osc.frequency.exponentialRampToValueAtTime(1500, t + seconds);
+      lp.type = 'lowpass'; lp.frequency.value = 2600;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.045, t + 0.12);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+      osc.connect(lp); lp.connect(g); g.connect(this.master);
+      osc.start(t); osc.stop(t + seconds + 0.05);
+    },
+    /** хлопок салюта: удар, треск искр и эхо зала */
+    firework(power = 1) {
+      if (!this.ctx || !this.enabled) return;
+      const ctx = this.ctx, t = ctx.currentTime;
+      // низкий удар
+      const boom = ctx.createOscillator(), bg = ctx.createGain();
+      boom.type = 'sine';
+      boom.frequency.setValueAtTime(150 * power, t);
+      boom.frequency.exponentialRampToValueAtTime(40, t + 0.35);
+      bg.gain.setValueAtTime(0.22 * power, t);
+      bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      boom.connect(bg); bg.connect(this.master);
+      boom.start(t); boom.stop(t + 0.55);
+      // шумовая вспышка
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer(0.9);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.setValueAtTime(1800, t);
+      bp.frequency.exponentialRampToValueAtTime(500, t + 0.6);
+      bp.Q.value = 0.7;
+      const ng = ctx.createGain();
+      ng.gain.setValueAtTime(0.18 * power, t);
+      ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+      src.connect(bp); bp.connect(ng); ng.connect(this.master);
+      src.start(t); src.stop(t + 0.8);
+      // треск падающих искр
+      for (let i = 0; i < 14; i++) {
+        const tt = t + 0.12 + Math.random() * 0.75;
+        const c = ctx.createBufferSource();
+        c.buffer = this.noiseBuffer(0.05);
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass'; hp.frequency.value = 2600;
+        const cg = ctx.createGain();
+        cg.gain.setValueAtTime(0.035 * power, tt);
+        cg.gain.exponentialRampToValueAtTime(0.0001, tt + 0.05);
+        c.connect(hp); hp.connect(cg); cg.connect(this.master);
+        c.start(tt); c.stop(tt + 0.06);
+      }
+    },
     click() {
       if (!this.ctx || !this.enabled) return;
       const ctx = this.ctx, t = ctx.currentTime;
