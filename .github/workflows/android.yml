@@ -1,6 +1,8 @@
 # Сборка Android-приложения Volleyball Manager.
 # Локально APK не собрать без Android SDK, поэтому сборка идёт здесь:
-# на раннере GitHub SDK уже установлен. Готовый файл лежит в артефактах запуска.
+# на раннере GitHub SDK уже установлен. Готовый файл лежит в двух местах:
+# в артефактах запуска (нужен вход в GitHub) и в релизе apk-latest,
+# откуда его можно скачать прямой ссылкой прямо с телефона.
 name: Android APK
 
 on:
@@ -8,6 +10,9 @@ on:
   push:
     branches: [main, 'claude/**']
     paths-ignore: ['README.md', 'docs/**']
+
+permissions:
+  contents: write        # нужен, чтобы обновлять релиз с готовым APK
 
 jobs:
   build:
@@ -55,3 +60,21 @@ jobs:
           path: volleyball-manager-debug.apk
           if-no-files-found: error
           retention-days: 30
+
+      # Артефакт скачивается только из-под входа в GitHub, поэтому тот же файл
+      # кладём в релиз с постоянным тегом: ссылка не меняется и открывается с телефона.
+      - name: Обновить релиз с APK
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Отладочная сборка от коммита ${GITHUB_SHA:0:7} ($(date -u '+%d.%m.%Y %H:%M UTC')).
+
+          Скачайте volleyball-manager-debug.apk и откройте на телефоне.
+          Android спросит разрешение на установку из неизвестного источника —
+          для отладочной сборки это обычная процедура."
+          gh release delete apk-latest --yes --cleanup-tag || true
+          gh release create apk-latest volleyball-manager-debug.apk \
+            --title "Volleyball Manager — последняя сборка" \
+            --notes "$NOTES" \
+            --target "$GITHUB_SHA" 
