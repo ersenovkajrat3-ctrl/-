@@ -15,18 +15,24 @@
     game.window = { open: true, type, opened: game.week };
     buildMarket(game);
     if (game.playerClubId) {
+      const club = game.clubs[game.playerClubId];
       game.inbox.unshift({
         week: game.week, kind: 'transfer',
         text: (type === 'preseason' ? 'Летнее' : 'Зимнее') + ' трансферное окно открыто. Лимит легионеров в вашем дивизионе: ' +
-          FOREIGN_LIMIT[game.clubs[game.playerClubId].division] + '.',
+          FOREIGN_LIMIT[club.division] + '.',
       });
+      if (S.Feed) S.Feed.event(game, club, 'windowOpen', { club: club.name, leagueName: S.DIVISIONS[club.division].name }, 0.7, { authors: ['league'] });
     }
   }
   function closeWindow(game) {
     if (!game.window || !game.window.open) return;
     game.window.open = false;
     game.market = [];
-    if (game.playerClubId) game.inbox.unshift({ week: game.week, kind: 'transfer', text: 'Трансферное окно закрыто.' });
+    if (game.playerClubId) {
+      const club = game.clubs[game.playerClubId];
+      game.inbox.unshift({ week: game.week, kind: 'transfer', text: 'Трансферное окно закрыто.' });
+      if (S.Feed) S.Feed.event(game, club, 'windowClose', { club: club.name, leagueName: S.DIVISIONS[club.division].name }, 0.6, { authors: ['league'] });
+    }
   }
 
   /* ---------- рынок ---------- */

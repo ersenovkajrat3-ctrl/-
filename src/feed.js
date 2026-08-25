@@ -10,7 +10,11 @@
     rival:   { key: 'rival',   label: 'Соперник · капитан', handle: '@rival_captain', avatar: 'С', kind: 'rival' },
     fan:     { key: 'fan',     label: 'Болельщик',          handle: '@sektorb_forever', avatar: 'Б', kind: 'fan' },
     insider: { key: 'insider', label: 'Инсайдер лиги',      handle: '@volley_insider', avatar: 'И', kind: 'insider' },
-    press:   { key: 'press',   label: 'Волейбол · сводка',  handle: '@vm_daily'   ,    avatar: 'В', kind: 'press' },
+    press:   { key: 'press',   label: 'Волейбол · сводка',  handle: '@vm_daily',      avatar: 'В', kind: 'press' },
+    // официальные аккаунты организаций: лига, еврокубки и мировая федерация
+    league:  { key: 'league',  label: 'Лига · оргкомитет',  handle: '@liga_official', avatar: 'Л', kind: 'org' },
+    euro:    { key: 'euro',    label: 'Европейские кубки',  handle: '@eurocups',      avatar: 'Е', kind: 'org' },
+    world:   { key: 'world',   label: 'Мировая федерация волейбола', handle: '@worldvolley', avatar: 'М', kind: 'org' },
   };
 
   /* шаблоны: {tone} подставляется вариантом по выбранному тону официальных постов */
@@ -73,6 +77,7 @@
     promo: {
       club: { calm: ['Повышение: {division}. Спасибо каждому, кто был рядом.'], bold: ['{division} — взяли! Дальше только выше.'], provoc: ['{division} наша. Тем, кто нас хоронил, — привет.'] },
       press: ['Повышение: {club} → {division}.'],
+      league: ['Состав {divisionGen} на следующий сезон пополняет {club}. Поздравляем с повышением.'],
     },
     releg: {
       club: { calm: ['Сезон закончен вылетом: {division}. Будем возвращаться.'], bold: ['Вылет: {division}. Возвращаемся через год, не иначе.'], provoc: ['{division}. Спасибо всем, кто помогал нам туда попасть.'] },
@@ -82,10 +87,43 @@
       club: { calm: ['Клуб получил путёвку: {cup}. Работа продолжается.'], bold: ['{cup}! Клуб выходит в Европу.'], provoc: ['{cup}. Кто там считал нас провинцией?'] },
       press: ['Квалификация: {club} → {cup}.'],
       insider: ['Лицензия арены {club} прошла проверку — путёвка ({cup}) подтверждена.'],
+      euro: ['Заявка {club} на {cup} принята: арена прошла лицензирование.'],
     },
     trophy: {
       club: { calm: ['{trophy} — наш. Спасибо команде и болельщикам.'], bold: ['{trophy}! Мы это заслужили.'], provoc: ['{trophy}. Вопросы ещё есть?'] },
       press: ['{club} выигрывает {trophy}.'],
+      league: ['{trophy} едет в {city}. Поздравляем {club} и всех, кто был на трибунах.'],
+      euro: ['Трофей {trophy} завоёван клубом {club}. Поздравляем чемпиона Европы.'],
+    },
+    /* ---- официальные аккаунты организаций ---- */
+    draw: {
+      euro: ['Жеребьёвка завершена: {club} попадает в группу с {rivals}.',
+        'Группы {cup} определены. {club} начинает поход с соперниками: {rivals}.'],
+      league: ['{club} представляет страну в {cup}. Удачи в Европе.'],
+    },
+    host: {
+      euro: ['«Финал четырёх» {cup} примет {city} ({country}). Билеты поступят в продажу за месяц до турнира.',
+        'Место проведения «Финала четырёх» {cup} утверждено: {city}, {country}.'],
+    },
+    natResult: {
+      world: ['{tournament}: сборная {nationGen} — {place}. Поздравляем призёров и благодарим болельщиков.',
+        'Итог турнира «{tournament}»: сборная {nationGen} занимает {place}. Следующий турнир цикла — через год.'],
+      league: ['Игроки лиги в заявке сборной на {tournament}: {count}. Нам есть кем гордиться.'],
+    },
+    ranking: {
+      world: ['Обновлён мировой рейтинг сборных: {nation} — {place} строчка.',
+        'Пересчитан рейтинг федераций: сборная {nationGen} идёт {place}.'],
+    },
+    roundup: {
+      league: ['Тур сыгран. Лидер — {leader}. Лучший бомбардир тура: {hero} ({points} очк).',
+        'Итоги тура: {leader} возглавляет таблицу, {hero} набирает {points} очков за матч.'],
+    },
+    windowOpen: {
+      league: ['Трансферное окно открыто. Напоминаем про лимит легионеров в заявке.',
+        'Открыт трансферный период: заявки принимаются до конца окна.'],
+    },
+    windowClose: {
+      league: ['Трансферное окно закрыто. Составы зафиксированы до следующего периода.'],
     },
     rumor: {
       insider: ['Слышал, {club} ведёт переговоры о титульном спонсорстве. Если сложится — жди ребрендинг к следующему сезону.',
@@ -108,7 +146,7 @@
   /** охват поста: реакции зависят от репутации, медийности, тона и важности события */
   function engagement(rng, club, importance, tone, authorKind) {
     const toneMult = tone === 'provoc' ? 1.35 : tone === 'bold' ? 1.15 : 1;
-    const kindMult = { official: 1, fan: 0.55, rival: 0.75, insider: 0.9, press: 0.7 }[authorKind] || 0.8;
+    const kindMult = { official: 1, fan: 0.55, rival: 0.75, insider: 0.9, press: 0.7, org: 1.25 }[authorKind] || 0.8;
     const base = (18 + club.reputation * 2.6 + club.mediaIndex * 3.4) * importance * toneMult * kindMult;
     const likes = Math.round(base * rng.range(0.7, 1.4));
     return { likes, reposts: Math.round(likes * rng.range(0.06, 0.22)) };
@@ -137,7 +175,8 @@
     for (const a of authors) {
       if (!tpl[a]) continue;
       // не каждое событие комментируют все
-      const chance = a === 'club' ? 1 : a === 'insider' ? 0.4 : a === 'press' ? 0.7 : 0.5;
+      const chance = a === 'club' ? 1 : a === 'insider' ? 0.4 : a === 'press' ? 0.7
+        : (a === 'league' || a === 'euro' || a === 'world') ? 0.95 : 0.5;
       if (a !== 'club' && !rng.chance(chance * importance)) continue;
       const raw = pickTemplate(rng, tpl[a], tone);
       if (!raw) continue;
@@ -145,7 +184,10 @@
       const eng = engagement(rng, club, importance, tone, author.kind);
       push(game, {
         id: 'f' + U.id(), week, clubId: club.id, type,
-        author: author.key, label: a === 'club' ? club.name + ' · официально' : author.label,
+        author: author.key,
+        label: a === 'club' ? club.name + ' · официально'
+          : a === 'league' && vars.leagueName ? vars.leagueName + ' · оргкомитет'
+            : author.label,
         handle: a === 'club' ? '@' + translit(club.baseName) : author.handle,
         avatar: a === 'club' ? club.name[0] : author.avatar,
         text: fill(raw, vars), likes: eng.likes, reposts: eng.reposts,

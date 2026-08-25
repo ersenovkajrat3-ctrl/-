@@ -16,6 +16,30 @@
     return new Date(SEASON_START + week * 7 * 86400000).getUTCMonth();
   }
 
+  /* Восход и закат по месяцам для средней полосы, в часах.
+     Из них считается, застанет ли матч светлое время: в декабре в 16:00 уже темно,
+     а в июне и в девять вечера светло. */
+  const SUN = {
+    0:  [9.0, 16.5], 1: [8.2, 17.5], 2: [7.0, 18.5], 3: [5.6, 19.5], 4: [4.7, 20.5], 5: [4.2, 21.2],
+    6:  [4.7, 20.8], 7: [5.5, 19.8], 8: [6.3, 18.7], 9: [7.2, 17.5], 10: [8.2, 16.3], 11: [9.0, 15.8],
+  };
+
+  /* Когда начинают. Будни — вечер после работы, выходные — день; еврокубки всегда вечером.
+     Формат — часы дробью: 18.5 значит 18:30. */
+  const SLOTS = {
+    league: [17, 18, 18.5, 19, 19.5, 14, 15, 16],
+    cup:    [18.5, 19, 19.5, 20],
+    euro:   [19, 19.5, 20, 20.5],
+    playoff:[17, 18, 18.5, 19, 19.5],
+    friendly: [12, 14, 16],
+  };
+
+  function hhmm(t) {
+    const hh = Math.floor(t);
+    const mm = Math.round((t - hh) * 60);
+    return hh + ':' + String(mm).padStart(2, '0');
+  }
+
   /* Типы погоды. cover — снежный покров (0…1), leaves — опавшая листва (0…1),
      foliage — состояние деревьев, night — темно ли на улице к началу матча.
      drop — что сыплется с неба и насколько густо. */
@@ -94,12 +118,19 @@
   }
 
   /** Погода на неделю и конкретный матч. key — что-нибудь стабильное: id матча. */
-  function make(week, key) {
+  function make(week, key, type) {
     const month = monthOf(week);
     const cl = CLIMATE[month] || CLIMATE[9];
     const rnd = seeded(hash(String(key || 'x') + ':' + week));
     const kind = KINDS[pickKind(cl.mix, rnd())] || KINDS.cloud;
     const temp = Math.round(cl.temp[0] + (cl.temp[1] - cl.temp[0]) * rnd());
+    // время начала: от него зависит, играют при свете или под фонарями
+    const slots = SLOTS[type] || SLOTS.league;
+    const time = slots[Math.floor(rnd() * slots.length)];
+    const sun = SUN[month] || SUN[9];
+    // сумерки — короткое окно вокруг заката, дальше уже темно
+    const daylight = time > sun[1] + 0.5 || time < sun[0] ? 'night'
+      : time > sun[1] - 0.6 ? 'dusk' : 'day';
     // ясный морозный вечер добавляет снега на земле, оттепель — съедает
     let cover = U.clamp(cl.cover + (kind.id === 'blizzard' ? 0.2 : kind.id === 'thaw' ? -0.25 : 0), 0, 1);
     if (temp > 3) cover = Math.min(cover, 0.15);
@@ -107,7 +138,9 @@
     const pal = PALETTE[foliage] || PALETTE.bare;
     return {
       month, monthName: MONTHS[month], kind: kind.id, kindName: kind.name,
-      temp, cover, leaves: cl.leaves, foliage, night: cl.night,
+      temp, cover, leaves: cl.leaves, foliage,
+      time, timeLabel: hhmm(time), daylight, night: daylight !== 'day',
+      sunset: sun[1], sunrise: sun[0],
       drop: kind.drop, density: kind.density || 0, wind: kind.wind,
       wet: kind.drop === 'rain' || kind.drop === 'sleet',
       palette: pal,
@@ -119,7 +152,8 @@
       результат при каждом вызове, поэтому сохранение не пухнет от 700 объектов погоды. */
   function forFixture(game, fx) {
     if (!fx) return make(game.week, 'w' + game.week);
-    return make(fx.week != null ? fx.week : game.week, fx.id || (fx.h + '' + fx.a + fx.week));
+    const type = fx.series || (fx.stageKey && fx.type === 'league') ? 'playoff' : fx.type;
+    return make(fx.week != null ? fx.week : game.week, fx.id || (fx.h + '' + fx.a + fx.week), type);
   }
 
   /** Влияние на посещаемость: в метель дойдут не все, тёплым майским вечером придут лишние. */
@@ -136,8 +170,15 @@
 
   /** Строка для комментатора и карточки матча. */
   function line(wx) {
-    return wx.monthName + ' · ' + wx.label;
+    return wx.timeLabel + ' · ' + wx.monthName + ' · ' + wx.label;
   }
 
-  S.Weather = { make, forFixture, attendanceFactor, monthOf, line, MONTHS, KINDS, CLIMATE, PALETTE };
+  /** Как назвать время суток словами. */
+  function partOfDay(wx) {
+    if (wx.daylight === 'night') return wx.time < 12 ? 'утро' : 'вечер';
+    if (wx.daylight === 'dusk') return 'сумерки';
+    return wx.time < 12 ? 'утро' : wx.time < 17 ? 'день' : 'вечер';
+  }
+
+  S.Weather = { make, forFixture, attendanceFactor, monthOf, line, partOfDay, hhmm, SUN, SLOTS, MONTHS, KINDS, CLIMATE, PALETTE };
 })(typeof window !== 'undefined' ? window : globalThis);

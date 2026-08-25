@@ -43,6 +43,56 @@
     return { count, fill: count / cap, cap, members: fans.members };
   }
 
+  /* ---------- телевидение ---------- */
+  /* Матчи показывают не все и не везде: в суперлиге камеры на каждом туре, в первенстве
+     регионов — разве что областное телевидение на дерби. Показ приносит деньги за права,
+     поднимает медийность и требует медиа-инфраструктуры на арене. */
+  const TV_BASE = [1.6e6, 320e3, 90e3, 22e3];   // выплата за один показанный матч по дивизионам
+
+  /** решение телевидения по конкретному матчу — детерминированное, без ГПСЧ партии */
+  function televised(game, club, fx, opponent) {
+    if (!fx || !club) return null;
+    const arena = club.arena || {};
+    const div = club.division;
+    // ключевые матчи показывают всегда, если есть откуда показывать
+    const bigStage = fx.type === 'euro' || fx.neutral
+      || (fx.stageKey && ['final', 'sf', 'qf'].includes(fx.stageKey))
+      || (fx.type === 'cup' && /финал|1\/2/i.test(fx.stage || ''));
+    let chance = [0.85, 0.45, 0.16, 0.05][div];
+    chance += club.mediaIndex / 260;
+    const oppRep = opponent ? (opponent.reputation != null ? opponent.reputation : opponent.power) : null;
+    if (oppRep != null) chance += U.clamp((oppRep - 55) / 300, -0.05, 0.18);
+    if (arena.media >= 1) chance += 0.12 * arena.media;
+    let h = 2166136261;
+    const key = (fx.id || '') + '|tv';
+    for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
+    const roll = ((h >>> 0) % 1000) / 1000;
+    const on = bigStage || roll < U.clamp(chance, 0, 0.97);
+    if (!on) return null;
+    // без медиа-инфраструктуры показывают одной камерой и платят вчетверо меньше
+    const level = fx.type === 'euro' || fx.neutral ? 'euro' : arena.media >= 2 ? 'hd' : arena.media >= 1 ? 'base' : 'local';
+    const payMult = { euro: 1.8, hd: 1, base: 0.6, local: 0.25 }[level];
+    const stageMult = bigStage ? 1.9 : 1;
+    const fee = Math.round(TV_BASE[div] * payMult * stageMult * (0.75 + club.mediaIndex / 150));
+    const CH = {
+      euro: { name: 'Евроспорт-Волей', short: 'CEV TV' },
+      hd: { name: 'Матч-Волейбол HD', short: 'HD' },
+      base: { name: 'Спорт-Регион', short: 'ТВ' },
+      local: { name: 'областное ТВ', short: 'ТВ' },
+    }[level];
+    return { on: true, level, fee, channel: CH.name, short: CH.short, big: bigStage };
+  }
+
+  /** деньги и медийность за показанный матч */
+  function tvIncome(game, club, fx, opponent) {
+    const tv = televised(game, club, fx, opponent);
+    if (!tv) return null;
+    ledger(club, 'tv', 'Права на показ · ' + tv.channel, tv.fee);
+    club.mediaIndex = U.clamp(club.mediaIndex + (tv.big ? 2.2 : 0.9), 5, 99);
+    merchSpike(game, club, tv.big ? 0.12 : 0.05);
+    return tv;
+  }
+
   /* ---------- мерч ---------- */
   /** Насколько бойко расходится атрибутика: медийность, настроение трибун, звёзды в составе.
       Всплеск после трофея или подписания звезды живёт несколько месяцев и затухает. */
@@ -184,10 +234,30 @@
   }
 
   /* ---------- спонсоры ---------- */
+  /** имя арены по умолчанию — то, что написано на фасаде, пока нет титульного партнёра */
+  function defaultArenaName(club) {
+    return club.arenaBaseName || ('Дворец спорта, ' + club.city);
+  }
+  /** как арена называется сейчас: с титульным спонсором — его именем */
+  function arenaName(club) {
+    return club.arenaSponsorName || defaultArenaName(club);
+  }
+  /** короткое имя для фасада и табло: «СЕВЕРГАЗ-АРЕНА» или название города */
+  function arenaShort(club) {
+    if (club.arenaSponsorName) return club.arenaSponsorName;
+    if (club.arenaBaseName) return club.arenaBaseName;
+    return club.city;
+  }
+
   function renameFor(club, brand) {
     club.name = brand + ' ' + club.city;
+    // права на название: вместе с клубом имя партнёра берёт и арена
+    club.arenaSponsorName = brand + '-Арена';
   }
-  function restoreName(club) { club.name = club.baseName; }
+  function restoreName(club) {
+    club.name = club.baseName;
+    club.arenaSponsorName = null;
+  }
 
   /** округление суммы контракта: в суперлиге до сотен тысяч, в первенстве регионов — до десятков,
       иначе региональный контракт нижней лиги превращался в круглый ноль */
@@ -332,16 +402,20 @@
     const merch = merchMonthly(game, club);
     const homeMatchesPerMonth = 2;
     const support = founderSupport(club);
-    const monthly = sponsors + support + merch + perMatch * homeMatchesPerMonth - wages - upkeep - (club.finance.loanMonths > 0 ? club.finance.loanMonthly : 0);
+    // телевидение: сколько в среднем приносят показы за месяц при текущей арене и медийности
+    const tvShare = U.clamp([0.85, 0.45, 0.16, 0.05][club.division] + club.mediaIndex / 260 + 0.12 * club.arena.media, 0, 0.97);
+    const tvPay = Math.round(TV_BASE[club.division] * (club.arena.media >= 2 ? 1 : club.arena.media >= 1 ? 0.6 : 0.25) * (0.75 + club.mediaIndex / 150));
+    const tv = Math.round(tvPay * tvShare * homeMatchesPerMonth);
+    const monthly = sponsors + support + merch + tv + perMatch * homeMatchesPerMonth - wages - upkeep - (club.finance.loanMonths > 0 ? club.finance.loanMonthly : 0);
     return {
-      wages, sponsors, support, upkeep, perMatch, merch, monthly, attendance: att, debt: club.finance.debt,
+      wages, sponsors, support, upkeep, perMatch, merch, tv, tvShare, tvPay, monthly, attendance: att, debt: club.finance.debt,
       matchday: { tickets, boxes, food, merch: dayMerch },
     };
   }
 
   S.Economy = {
     ledger, wageBill, sponsorIncome, attendance, matchdayIncome, monthlyTick,
-    prizeMoney, euroPrize, founderSupport, usedBrands, merchMonthly, matchdayMerch, matchdayService, merchAppeal, merchSpike, FOOD_TIERS, foodTier, generateSponsorOffers, signSponsor, breakSponsor, sponsorValue, roundMoney,
-    upgradeCost, startUpgrade, takeLoan, loanLimit, summary, renameFor, restoreName, PRIZE_BASE, TIER_COST,
+    prizeMoney, euroPrize, founderSupport, usedBrands, merchMonthly, matchdayMerch, matchdayService, merchAppeal, merchSpike, FOOD_TIERS, foodTier, generateSponsorOffers, signSponsor, breakSponsor, sponsorValue, roundMoney, televised, tvIncome, TV_BASE,
+    upgradeCost, startUpgrade, takeLoan, loanLimit, summary, renameFor, restoreName, arenaName, arenaShort, defaultArenaName, PRIZE_BASE, TIER_COST,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

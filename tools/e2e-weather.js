@@ -88,7 +88,9 @@ const path = require('path');
     check(info.outside, 'нет улицы вокруг здания на неделе ' + info.week);
     check(/^-\d+ -\d+ /.test(info.box), 'кадр не расширен под улицу: ' + info.box);
     if (info.drops) check(info.masked, 'осадки не обрезаны по стенам зала');
-    check(/[а-я]+ \+?-?\d+°/.test(info.chip.replace(/\n/g, ' ')), 'нет месяца и температуры в шапке: ' + info.chip);
+    const chip = info.chip.replace(/\n/g, ' ');
+    check(/^\d{1,2}:\d{2}/.test(chip), 'нет времени начала в шапке: ' + chip);
+    check(/[а-я]+ · \+?-?\d+°/.test(chip), 'нет месяца и температуры в шапке: ' + chip);
     seen.push('нед.' + info.week + ' ' + info.chip.replace(/\n/g, ' ') + ' капель:' + info.drops);
     await page.screenshot({ path: path.join(__dirname, '../.shots/weather-' + target + '.png'), clip: { x: 0, y: 90, width: 390, height: 330 } });
     for (let i = 0; i < 60; i++) { if (!(await page.$('.court'))) break; if (!(await clickIf('button:has-text("Пропустить")') || await clickIf('button:has-text("Выйти")') || await clickIf('button:has-text("Закрыть")') || await clickIf('.m-ctrl button:last-child'))) break; }

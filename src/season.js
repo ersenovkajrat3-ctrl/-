@@ -123,7 +123,12 @@
     const homeClub = game.clubs[fx.h], awayClub = game.clubs[fx.a];
     // преимущество своей площадки дают трибуны: полупустой тихий зал почти не помогает
     let homeBonus = 1.6;
-    if (homeClub) {
+    if (fx.neutral) {
+      // «Финал четырёх» в чужом городе: трибуны не свои, преимущества площадки нет
+      homeBonus = 0;
+      fx.attendanceHint = { fill: 0.92, count: 0, cap: 0, members: 0 };
+      fx.support = 0.5;
+    } else if (homeClub) {
       const att = Ec.attendance(game, homeClub, team(game, fx.a), S.Weather && S.Weather.forFixture(game, fx));
       fx.attendanceHint = att;
       homeBonus = S.Fans.homeBonus(game, homeClub, att.fill);
@@ -343,7 +348,7 @@
       S.Fans.onTrophy(game, c);
       Ec.merchSpike(game, c, 0.35);
       if (c.isPlayer) queueCeremony(game, { type: 'cup', title: 'Кубок страны', subtitle: 'Финал выигран', clubId: c.id });
-      S.Feed.event(game, c, 'trophy', { trophy: 'Кубок страны', club: c.name }, 1.6);
+      S.Feed.event(game, c, 'trophy', { trophy: 'Кубок страны', club: c.name, city: c.city, leagueName: DIVISIONS[c.division].name }, 1.6);
       if (c.isPlayer) {
         Ec.ledger(c, 'prize', 'Призовые: Кубок страны', Ec.PRIZE_BASE * 0.18);
         game.inbox.unshift({ week: game.week, kind: 'trophy', text: 'Кубок страны выигран! Призовые: ' + U.money(Ec.PRIZE_BASE * 0.18) });
@@ -383,17 +388,33 @@
     const rivals = rng.shuffle(band).slice(0, 3);
     const groupIds = [clubId].concat(rivals.map((r) => r.id));
     const rounds = W.roundRobin(groupIds, rng);
+    // «Финал четырёх» CEV играют на нейтральной площадке: город объявляют заранее
+    const hostPool = S.EURO_POOL.filter((c) => c.cities.length);
+    const hostCountry = rng.pick(hostPool);
+    const host = { city: rng.pick(hostCountry.cities), country: hostCountry.country, code: hostCountry.code };
     game.euro = {
-      cupId, name: cup.name, short: cup.short, group: groupIds,
+      cupId, name: cup.name, short: cup.short, group: groupIds, host,
       table: Object.fromEntries(groupIds.map((id) => [id, { p: 0, w: 0, l: 0, pts: 0, setsW: 0, setsL: 0 }])),
       stage: 'group', knockout: [], done: false, result: null,
     };
+    game.inbox.unshift({
+      week: 0, kind: 'euro',
+      text: 'CEV объявила место проведения «Финала четырёх» ' + cup.short + ': ' + host.city + ' (' + host.country + ').',
+    });
     rounds.forEach((round, i) => {
       round.forEach((m) => {
         game.fixtures.push({ id: 'fx' + U.id(), week: W.EURO_GROUP_WEEKS[i], type: 'euro', stage: 'Групповой этап, тур ' + (i + 1), stageKey: 'group', h: m.h, a: m.a, played: false, result: null });
       });
     });
     S.Feed.event(game, club, 'euro', { cup: cup.name, club: club.name }, 1.5);
+    // официальные аккаунты: жеребьёвка группы и объявление места «Финала четырёх»
+    S.Feed.event(game, club, 'draw', {
+      cup: cup.name, club: club.name, leagueName: DIVISIONS[club.division].name,
+      rivals: rivals.map((r) => r.name).join(', '),
+    }, 1.2, { authors: ['euro', 'league'] });
+    S.Feed.event(game, club, 'host', {
+      cup: cup.short, city: host.city, country: host.country, club: club.name,
+    }, 1, { authors: ['euro'] });
   }
 
   /** для первого сезона: путёвки раздаём по репутации клубов Суперлиги */
@@ -453,15 +474,28 @@
       if (won) {
         eu.stage = 'sf';
         const rival = rng.pick(game.euroClubs.filter((c) => !eu.group.includes(c.id) && c.id !== last.a && c.id !== last.h));
-        game.fixtures.push({ id: 'fx' + U.id(), week: EURO_KO.sf, type: 'euro', stage: '«Финал четырёх», 1/2', stageKey: 'sf', h: game.playerClubId, a: rival.id, played: false, result: null });
-        game.inbox.unshift({ week: game.week, kind: 'euro', text: 'Клуб вышел в «Финал четырёх» ' + cup.short + '! Полуфинал против ' + rival.name + '.' });
+        const host = eu.host;
+        game.fixtures.push({
+          id: 'fx' + U.id(), week: EURO_KO.sf, type: 'euro',
+          stage: '«Финал четырёх», 1/2' + (host ? ' · ' + host.city : ''), stageKey: 'sf',
+          neutral: true, host, h: game.playerClubId, a: rival.id, played: false, result: null,
+        });
+        game.inbox.unshift({
+          week: game.week, kind: 'euro',
+          text: 'Клуб вышел в «Финал четырёх» ' + cup.short + '! Полуфинал против ' + rival.name
+            + (host ? '. Турнир принимает ' + host.city + ' (' + host.country + ')' : '') + '.',
+        });
       } else { eu.done = true; eu.result = '1/4 финала'; }
     } else if (last.stageKey === 'sf' && eu.stage === 'sf') {
       Ec.ledger(club, 'prize', 'Призовые ' + cup.short + ': полуфинал', Ec.euroPrize(eu.cupId, 'sf'));
       if (won) {
         eu.stage = 'final';
         const rival = rng.pick(game.euroClubs.filter((c) => c.id !== last.a));
-        game.fixtures.push({ id: 'fx' + U.id(), week: EURO_KO.final, type: 'euro', stage: 'ФИНАЛ ' + cup.short, stageKey: 'final', h: game.playerClubId, a: rival.id, played: false, result: null });
+        game.fixtures.push({
+          id: 'fx' + U.id(), week: EURO_KO.final, type: 'euro',
+          stage: 'ФИНАЛ ' + cup.short + (eu.host ? ' · ' + eu.host.city : ''), stageKey: 'final',
+          neutral: true, host: eu.host, h: game.playerClubId, a: rival.id, played: false, result: null,
+        });
       } else { eu.done = true; eu.result = 'Полуфинал'; }
     } else if (last.stageKey === 'final' && eu.stage === 'final') {
       eu.done = true;
@@ -473,7 +507,7 @@
         Ec.merchSpike(game, club, 0.55);
         S.Fans.unlock(game, club, 'euro');
         queueCeremony(game, { type: 'euro', title: cup.name, subtitle: '«Финал четырёх» выигран', clubId: club.id });
-        S.Feed.event(game, club, 'trophy', { trophy: cup.name, club: club.name }, 2);
+        S.Feed.event(game, club, 'trophy', { trophy: cup.name, club: club.name, city: club.city, leagueName: DIVISIONS[club.division].name }, 2);
       } else {
         eu.result = 'Финал';
         Ec.ledger(club, 'prize', 'Призовые ' + cup.short + ': финал', Ec.euroPrize(eu.cupId, 'final'));

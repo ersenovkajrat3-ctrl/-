@@ -58,6 +58,8 @@
       reputation: Math.round(strength),
       arena: makeArena(capacity),
       ticketPrice: Math.round(300 + strength * 12),
+      arenaBaseName: null,      // своё имя арены, если клуб его задал
+      arenaSponsorName: null,   // имя от титульного партнёра на срок контракта
       foodPrice: 1,        // 0 — эконом, 1 — обычные цены, 2 — премиальные
       finance: { balance: 0, debt: 0, loanMonthly: 0, loanMonths: 0, sponsors: [], seasonIncome: 0, seasonSpend: 0, ledger: [] },
       squad: [], lineup: [], liberoId: null, tactics: null,

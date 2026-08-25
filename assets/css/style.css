@@ -370,6 +370,9 @@ table.tbl td.name { max-width: 150px; overflow: hidden; text-overflow: ellipsis;
 .post .ava.fan { color: var(--teal); }
 .post .ava.rival { color: var(--bad); }
 .post .ava.insider { color: var(--warn); }
+.post .ava.league { color: var(--accent); border-color: var(--accent); }
+.post .ava.euro { color: #6aa9ff; border-color: #3f6fb5; }
+.post .ava.world { color: #d0b4ff; border-color: #7a5fb0; }
 .post .ava-crest { width: 36px; height: 36px; flex: 0 0 36px; display: grid; place-items: center; }
 .swatch {
   width: 38px; height: 38px; border-radius: 10px; border: 2px solid transparent;
@@ -566,6 +569,26 @@ table.tbl td.name { max-width: 170px; }
 .wx-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--dim); }
 .wx-chip svg { display: block; }
 .wx-chip b { color: var(--muted); font-weight: 700; }
+.on-air { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #ff6b60; }
+.on-air i { width: 7px; height: 7px; border-radius: 50%; background: #ff3b30; animation: on-air 1.6s ease-in-out infinite; }
+@keyframes on-air { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+.court .tally { animation: on-air 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .on-air i, .court .tally { animation: none; } }
+
+/* ---------- дворец спорта снаружи, изометрия ---------- */
+.exterior { width: 100%; display: block; border-radius: 12px; overflow: hidden; background: #0e1730; }
+.exterior .ex-walker { transform-box: view-box; animation: ex-walk 3.2s ease-in-out var(--d, 0s) infinite alternate; }
+.exterior .ex-light { animation: ex-blink 2.4s ease-in-out var(--d, 0s) infinite; }
+@keyframes ex-blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .exterior .ex-light { animation: none; } }
+@keyframes ex-walk { from { translate: 0 0; } to { translate: -1px -5px; } }
+@media (prefers-reduced-motion: reduce) { .exterior .ex-walker { animation: none; } }
+.exterior .wx-drop { transform-box: view-box; translate: var(--x) -34px; animation-name: wx-fall; animation-timing-function: linear; animation-iteration-count: infinite; }
+.ex-card { padding: 0; overflow: hidden; }
+.ex-intro { position: absolute; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 4; }
+.ex-intro .inner { width: 100%; padding: 0 12px; }
+.ex-intro .vs-line { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; font-weight: 800; font-size: 16px; }
+.ex-intro .tap { text-align: center; color: var(--dim); font-size: 11.5px; margin-top: 12px; }
 .court .fan.cheer { animation: fan-cheer .8s ease-out var(--delay, 0s); }
 @keyframes fan-cheer {
   0% { translate: 0 0; scale: 1; }

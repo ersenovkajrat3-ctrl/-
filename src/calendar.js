@@ -40,6 +40,14 @@
     if (fx.type === 'league') applyToTableSafe(game, fx);
     if (fx.type === 'euro') Sn.applyEuroTable(game, fx);
     if (fx.series) updateSeries(game, fx);
+    // телевидение: показ приносит деньги за права и поднимает медийность
+    const pid2 = game.playerClubId;
+    if (pid2 && fx.type !== 'friendly' && (fx.h === pid2 || (fx.a === pid2 && (fx.type === 'euro' || fx.neutral)))) {
+      const myClub = game.clubs[pid2];
+      const other = Sn.team(game, fx.h === pid2 ? fx.a : fx.h);
+      const tv = Ec.tvIncome(game, myClub, fx, other);
+      if (tv) fx.tv = { channel: tv.channel, short: tv.short, fee: tv.fee, big: tv.big };
+    }
     // деньги за домашний матч
     if (homeIsClub && fx.type !== 'friendly') {
       const opp = awayIsClub ? game.clubs[fx.a] : Sn.team(game, fx.a);
@@ -314,7 +322,7 @@
             awards: Sn.seasonAwards(game, d.id),
           });
         }
-        S.Feed.event(game, champ, 'trophy', { trophy: d.name, club: champ.name }, 1.8);
+        S.Feed.event(game, champ, 'trophy', { trophy: d.name, club: champ.name, city: champ.city, leagueName: d.name }, 1.8);
       }
     });
   }
@@ -401,7 +409,10 @@
             type: 'promotion', title: DIVISIONS[c.division].name, subtitle: 'Клуб поднимается дивизионом выше', clubId: c.id,
           });
         }
-        S.Feed.event(game, c, 'promo', { division: DIVISIONS[c.division].name, club: c.name }, 1.6);
+        S.Feed.event(game, c, 'promo', {
+          division: DIVISIONS[c.division].name, divisionGen: DIVISIONS[c.division].nameGen,
+          club: c.name, leagueName: DIVISIONS[c.division].name,
+        }, 1.6);
       });
       r.relegated.forEach((id) => {
         const c = game.clubs[id];

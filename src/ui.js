@@ -728,6 +728,9 @@
       }),
       optSwitch('Текстовый комментарий', 'подробный разбор розыгрышей в матче', g.settings.commentary !== false, (v) => {
         g.settings.commentary = v; S.Save.saveSettings(g.settings);
+      }),
+      optSwitch('Кадр перед матчем', 'дворец спорта снаружи: город, парковка и погода', g.settings.intro !== false, (v) => {
+        g.settings.intro = v; S.Save.saveSettings(g.settings);
       })));
 
     scr.appendChild(h('div', { class: 'section-title', text: 'Тема' }));

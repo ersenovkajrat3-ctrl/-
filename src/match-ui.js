@@ -62,8 +62,11 @@
     const ctrl = h('div', { class: 'm-ctrl' });
     ov.append(head, courtWrap, statsBox, logBox, ctrl);
 
+    const myClub = g.clubs[g.playerClubId];
+    const tvFor = myClub && fx.type !== 'friendly' && (fx.h === g.playerClubId || fx.type === 'euro' || fx.neutral)
+      ? Ec.televised(g, myClub, fx, Sn.team(g, fx.h === g.playerClubId ? fx.a : fx.h)) : null;
     live = {
-      fx, match, me, isHome, opp: isHome ? match.away : match.home,
+      fx, match, me, isHome, opp: isHome ? match.away : match.home, tv: tvFor,
       support: fx.support != null ? fx.support : (g.clubs[fx.h] ? S.Fans.support(g, g.clubs[fx.h], att.fill) : 0.5),
       statsBox, statsOpen: false,
       playing: true, timer: null, ov, head, courtWrap, logBox, ctrl,
@@ -78,16 +81,67 @@
     drawCourt();
     drawStats();
     drawControls();
+    // перед свистком — кадр снаружи: город, арена и погода этого месяца
+    showIntro(fx, att.fill);
     // с чего начинается матч: за окном месяц и погода, в зале — трибуны
     const wxIntro = S.Weather.forFixture(g, fx);
     pushLine('evt', wxWelcome(wxIntro) + ' Зал заполнен на ' + Math.round(live.fill * 100) + '%.', '');
+    if (live.tv) {
+      pushLine('evt', 'Матч показывает ' + live.tv.channel + '. Права на трансляцию — ' + U.money(live.tv.fee) + ' в кассу клуба.', '');
+    }
     pushLine('evt', 'Стартовый свисток. ' + Sn.teamName(g, fx.h) + ' принимает ' + Sn.teamName(g, fx.a) + '.', '');
     if (g.settings.sound) S.Audio.whistle(false);
     schedule();
   }
 
+  /** вступительный кадр: дворец спорта снаружи, соперники и погода. Тап — пропустить. */
+  function showIntro(fx, fill) {
+    const g = UI.game;
+    if (!S.Exterior || g.settings.intro === false) return;
+    const homeClub = g.clubs[fx.h];
+    if (!homeClub) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const wx = S.Weather.forFixture(g, fx);
+    // «Финал четырёх» играют в чужом городе: и зал, и цвета на фасаде не наши
+    const neutral = fx.neutral && fx.host
+      ? {
+        city: fx.host.city, accent: '#2f6fd0', capacity: 12000, flagCode: fx.host.code,
+        title: fx.stage + ' · ' + fx.host.city + ', ' + fx.host.country,
+        arena: { stands: 5, vip: 3, media: 3, base: 2, service: 2, shop: 2 },
+      }
+      : null;
+    const venue = neutral
+      ? fx.host.city + ', ' + fx.host.country
+      : Ec.arenaName(homeClub);
+    const intro = h('div', { class: 'ex-intro' },
+      h('div', { class: 'inner' },
+        h('div', { class: 'row between mb' },
+          h('span', { class: 'pill accent', text: UI.compLabel(fx) }),
+          live.tv ? h('span', { class: 'on-air' }, h('i'), live.tv.short + ' · в эфире') : null),
+        S.Exterior.scene(g, homeClub, Object.assign({ weather: wx, fill, tv: !!live.tv }, neutral || {})),
+        h('div', { class: 'vs-line' },
+          h('span', { class: 'ellipsis', text: Sn.teamName(g, fx.h) }),
+          h('span', { class: 'dim', text: '—' }),
+          h('span', { class: 'ellipsis', text: Sn.teamName(g, fx.a) })),
+        h('div', { class: 'tap' },
+          h('div', { text: venue + ' · начало в ' + wx.timeLabel }),
+          h('div', { class: 'mt-xs', text: 'коснитесь, чтобы пропустить' }))));
+    live.ov.appendChild(intro);
+    const close = () => {
+      if (!intro.parentNode) return;
+      intro.remove();
+      clearTimeout(live.introTimer);
+      live.introTimer = null;
+      schedule();
+    };
+    intro.addEventListener('click', close);
+    live.introTimer = setTimeout(close, reduce ? 700 : 2600);
+    live.intro = intro;
+  }
+
   function schedule() {
     if (!live) return;
+    if (live.intro && live.intro.parentNode) return;   // ждём, пока уйдёт вступительный кадр
     clearTimeout(live.timer);
     if (!live.playing || live.match.finished) return;
     live.timer = setTimeout(tick, SPEED[live.speed] || 750);
@@ -221,7 +275,9 @@
     const wx = S.Weather.forFixture(UI.game, live.fx);
     live.head.appendChild(h('div', { class: 'row between mt-xs' },
       UI.wxChip(wx),
-      h('span', { class: 'tiny dim', text: 'за стенами зала' })));
+      live.tv
+        ? h('span', { class: 'on-air' }, h('i'), live.tv.short + ' · в эфире')
+        : h('span', { class: 'tiny dim', text: 'за стенами зала' })));
 
     if (live.isHome) {
       const sup = Math.round((live.support != null ? live.support : 0.5) * 100);
@@ -281,8 +337,8 @@
     const o = opts || {};
     return h('span', { class: 'wx-chip' + (o.cls ? ' ' + o.cls : '') },
       wxIcon(wx, o.size),
-      h('b', { text: wx.monthName }),
-      h('span', { text: wx.label }));
+      h('b', { text: wx.timeLabel || '' }),
+      h('span', { text: wx.monthName + ' · ' + wx.label }));
   };
   UI.wxIcon = wxIcon;
 
@@ -694,6 +750,39 @@
       side.bench.forEach((p) => { if (!dots[p.id]) mkFigure(p, top); });
     });
 
+    // телевидение: камеры по углам, кран над сеткой и комментаторская позиция
+    if (live && live.tv) {
+      const tvg = svgEl('g', { class: 'tv-rig' });
+      const cam = (x, y, flip) => {
+        const c = svgEl('g', { transform: 'translate(' + x + ' ' + y + ')' + (flip ? ' scale(-1 1)' : '') });
+        c.appendChild(svgEl('rect', { x: -1.1, y: 0, width: 2.2, height: 5.2, rx: 0.6, fill: '#2b3448' }));  // штатив
+        c.appendChild(svgEl('rect', { x: -4.2, y: -4.6, width: 8.4, height: 4.8, rx: 1.2, fill: '#1d2536', stroke: '#3d4a63', 'stroke-width': 0.5 }));
+        c.appendChild(svgEl('circle', { cx: 3.1, cy: -2.2, r: 1.5, fill: '#0a0f1a', stroke: '#5b6b88', 'stroke-width': 0.5 }));
+        c.appendChild(svgEl('circle', { cx: -2.6, cy: -3.6, r: 0.85, fill: '#ff3b30', class: 'tally' }));   // огонёк «в эфире»
+        return c;
+      };
+      tvg.appendChild(cam(14, 46));
+      tvg.appendChild(cam(VB.w - 14, 46, true));
+      tvg.appendChild(cam(14, VB.h - 40));
+      if (live.tv.level === 'hd' || live.tv.level === 'euro') {
+        tvg.appendChild(cam(VB.w - 14, VB.h - 40, true));
+        // камера на кране над сеткой
+        const boom = svgEl('g', {});
+        boom.appendChild(svgEl('line', { x1: VB.w - 6, y1: 96, x2: VB.w - 42, y2: 128, stroke: '#39445c', 'stroke-width': 1.6 }));
+        boom.appendChild(svgEl('rect', { x: VB.w - 48, y: 124, width: 7, height: 4, rx: 1, fill: '#1d2536', stroke: '#3d4a63', 'stroke-width': 0.5 }));
+        boom.appendChild(svgEl('circle', { cx: VB.w - 45, cy: 122.5, r: 0.8, fill: '#ff3b30', class: 'tally' }));
+        tvg.appendChild(boom);
+      }
+      // комментаторская позиция на верхней трибуне
+      const booth = svgEl('g', {});
+      booth.appendChild(svgEl('rect', { x: VB.w * 0.5 - 17, y: 4, width: 34, height: 9, rx: 2, fill: '#131c2e', stroke: '#3d4a63', 'stroke-width': 0.6 }));
+      booth.appendChild(svgEl('text', {
+        x: VB.w * 0.5, y: 10.6, 'text-anchor': 'middle', 'font-size': 5.2, 'font-weight': 700, fill: '#9fb0c8',
+      }, live.tv.short));
+      tvg.appendChild(booth);
+      svg.appendChild(tvg);
+    }
+
     // осадки поверх всего, но только за стенами зала
     const drops = buildPrecipitation(svg, defs, wx, rng, reduce);
     if (drops) svg.appendChild(drops);
@@ -955,6 +1044,7 @@
   /** фраза комментатора про погоду за стенами зала */
   function wxWelcome(wx) {
     const cap = wx.monthName[0].toUpperCase() + wx.monthName.slice(1);
+    const when = wx.timeLabel + ', ' + (S.Weather.partOfDay ? S.Weather.partOfDay(wx) : '');
     const by = {
       blizzard: 'на улице метёт, у входа сугробы по колено',
       snow: 'за окнами тихо падает снег',
@@ -964,10 +1054,10 @@
       sleet: 'на улице мокрый снег с дождём',
       thaw: 'на улице оттепель, снег на газонах осел',
       cloud: 'на улице пасмурно',
-      clear: 'вечер за окнами ясный',
+      clear: 'небо над городом чистое',
       bloom: 'на улице тепло, деревья у арены в цвету',
     }[wx.kind] || 'на улице спокойно';
-    return cap + ', ' + (wx.temp > 0 ? '+' : '') + wx.temp + '° — ' + by + '.';
+    return cap + ', ' + when + ', ' + (wx.temp > 0 ? '+' : '') + wx.temp + '° — ' + by + '.';
   }
 
   function pushLine(cls, text, score) {

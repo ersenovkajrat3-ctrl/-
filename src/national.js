@@ -7,6 +7,7 @@
   const P = S.Players, W = S.World;
 
   const HOME = 'Россия';
+  const HOME_GEN = 'России';   // родительный падеж для строк вида «сборная России»
 
   /* сила сборных — тот же порядок, что и у клубных коэффициентов */
   const NATIONS = [
@@ -237,6 +238,20 @@
       medal: report.medal, champion: report.champion, stage: report.stage,
     });
     if (game.national.history.length > 20) game.national.history.pop();
+    // официальные аккаунты: федерация подводит итог турнира, лига считает своих
+    const club = game.playerClubId && game.clubs[game.playerClubId];
+    if (club && S.Feed) {
+      const place = report.medal ? report.medal : report.place ? report.place + '-е место' : report.stage;
+      S.Feed.event(game, club, 'natResult', {
+        tournament: report.tournament || report.short, nation: HOME, nationGen: HOME_GEN, place: place, club: club.name,
+        count: squad.filter((p) => p.clubId === club.id).length || 'наши',
+        leagueName: S.DIVISIONS[club.division].name,
+      }, 1.4, { authors: ['world', 'league'] });
+      S.Feed.event(game, club, 'ranking', {
+        nation: HOME, nationGen: HOME_GEN, place: (report.place && report.place <= 3 ? report.place : Math.max(2, Math.round(4 + (report.place || 6) * 0.7))) + '-я',
+        club: club.name,
+      }, 0.8, { authors: ['world'] });
+    }
     return report;
   }
 

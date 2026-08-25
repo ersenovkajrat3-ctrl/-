@@ -165,7 +165,11 @@
     const cup = EURO_CUPS.find((c) => c.id === eu.cupId);
     scr.appendChild(h('div', { class: 'card tight' },
       h('b', { text: cup.name }),
-      h('div', { class: 'small muted', text: eu.result ? 'Итог: ' + eu.result : 'Стадия: ' + (eu.stage === 'group' ? 'групповой этап' : stageName(eu.stage)) })));
+      h('div', { class: 'small muted', text: eu.result ? 'Итог: ' + eu.result : 'Стадия: ' + (eu.stage === 'group' ? 'групповой этап' : stageName(eu.stage)) }),
+      // «Финал четырёх» играют на нейтральной площадке — город известен с начала сезона
+      eu.host ? h('div', { class: 'row mt-xs', style: 'gap:6px;align-items:center' },
+        S.Flags && eu.host.code ? S.Flags.svg(eu.host.code, 16) : null,
+        h('span', { class: 'tiny dim', text: '«Финал четырёх» принимает ' + eu.host.city + ' (' + eu.host.country + ')' })) : null));
     const table = h('table', { class: 'tbl' },
       h('thead', null, h('tr', null, h('th', { text: '#' }), h('th', { text: 'Клуб' }), h('th', { text: 'И' }), h('th', { text: 'В' }), h('th', { text: 'Сеты' }), h('th', { text: 'О' }))));
     const body = h('tbody');
@@ -473,6 +477,18 @@
     scr.appendChild(UI.pageHeader('Арена', 'club'));
     const cap = W.arenaCapacity(club);
     const sum = Ec.summary(g, club);
+
+    scr.appendChild(h('div', { class: 'card tight' },
+      h('b', { text: Ec.arenaName(club) }),
+      h('div', { class: 'tiny dim', text: club.arenaSponsorName
+        ? 'Название по контракту с титульным партнёром — вернётся к прежнему, когда контракт закончится.'
+        : 'Титульный партнёр может выкупить права на название арены.' })));
+
+    // дворец спорта снаружи: каждый апгрейд виден отдельным объёмом
+    if (S.Exterior) {
+      scr.appendChild(h('div', { class: 'card ex-card mb' },
+        S.Exterior.scene(g, club, { fill: sum.attendance.fill, tv: sum.tvShare > 0.35 })));
+    }
     scr.appendChild(h('div', { class: 'stat-grid mb' },
       UI.stat(U.num(cap), 'мест'),
       UI.stat(Math.round(sum.attendance.fill * 100) + '%', 'заполняем.'),
@@ -652,9 +668,21 @@
     scr.appendChild(h('div', { class: 'card' },
       line('Спонсоры', sum.sponsors), line('Взнос учредителя', sum.support),
       line('Мерч: магазин и онлайн', sum.merch),
+      line('Права на показ (' + Math.round(sum.tvShare * 100) + '% матчей)', sum.tv),
       line('Матчдэй за домашний матч', sum.perMatch),
       line('Зарплаты', -sum.wages), line('Инфраструктура', -sum.upkeep),
       club.finance.loanMonths > 0 ? line('Кредит (' + club.finance.loanMonths + ' мес.)', -club.finance.loanMonthly) : null));
+
+    // телевидение отдельной карточкой: от чего зависит показ и сколько он приносит
+    scr.appendChild(h('div', { class: 'card tight' },
+      h('div', { class: 'row between mb' }, h('b', { text: 'Телевидение' }),
+        h('span', { class: 'pill ' + (sum.tvShare > 0.5 ? 'good' : sum.tvShare > 0.2 ? '' : 'bad'), text: Math.round(sum.tvShare * 100) + '% матчей' })),
+      h('div', {
+        class: 'tiny dim',
+        text: 'За показанный матч платят ' + U.money(sum.tvPay)
+          + '. Сколько матчей возьмут в эфир — решают дивизион, медийность и уровень «Освещения и медиа» на арене'
+          + (club.arena.media < 2 ? ': без второго уровня снимают одной камерой и платят меньше.' : '.'),
+      })));
 
     // из чего складывается день матча
     const md = sum.matchday;
