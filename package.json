@@ -15,6 +15,7 @@
     "e2e:weather": "node tools/e2e-weather.js",
     "e2e:found": "node tools/e2e-found.js",
     "e2e:arena": "node tools/e2e-arena.js",
+    "e2e:euro": "node tools/e2e-euro.js",
     "build": "node tools/build-single.js",
     "icons": "node tools/make-icons.js",
     "www": "node tools/build-www.js",

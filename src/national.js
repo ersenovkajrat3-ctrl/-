@@ -142,12 +142,22 @@
       matches: [], stage: null, place: null, medal: null, champion: null, ticker: [],
     };
 
-    // групповой этап
+    // жеребьёвка: сеяные корзины по рейтингу, из каждой корзины по команде в группу
     const groups = [];
-    const shuffled = rng.shuffle(teams);
     const groupCount = meta.teams === 12 ? 2 : 4;
     const perGroup = meta.teams / groupCount;
-    for (let i = 0; i < groupCount; i++) groups.push(shuffled.slice(i * perGroup, (i + 1) * perGroup));
+    const ranked = teams.slice().sort((a, b) => b.power - a.power);
+    const pots = [];
+    for (let i = 0; i < perGroup; i++) pots.push(rng.shuffle(ranked.slice(i * groupCount, (i + 1) * groupCount)));
+    for (let i = 0; i < groupCount; i++) groups.push([]);
+    pots.forEach((pot) => pot.forEach((t, i) => { if (groups[i]) groups[i].push(t); }));
+    report.draw = {
+      pots: pots.map((pot, i) => ({ n: i + 1, teams: pot.map((t) => ({ name: t.name, code: t.code || null, ours: !!t.ours })) })),
+      groups: groups.map((grp, i) => ({
+        name: String.fromCharCode(65 + i),
+        teams: grp.map((t) => ({ name: t.name, code: t.code || null, ours: !!t.ours })),
+      })),
+    };
     const advance = [];
     groups.forEach((grp) => {
       const table = grp.map((t) => ({ t, w: 0, l: 0, diff: 0 }));

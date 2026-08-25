@@ -12,7 +12,8 @@
     const club = g.clubs[g.playerClubId];
     const sub = UI.sub.matches || 'cal';
     const tabs = [['cal', 'Календарь'], ['table', 'Таблица'], ['po', 'Плей-офф'], ['cup', 'Кубок']];
-    if (g.euro) tabs.push(['euro', g.euro.short]);
+    // вкладка Европы есть всегда: даже без своей путёвки видно, кто куда попал и чем закончилось
+    tabs.push(['euro', g.euro ? g.euro.short : 'Европа']);
     scr.appendChild(h('div', { class: 'tabs' },
       ...tabs.map(([id, label]) => h('button', {
         class: 'tab' + (sub === id ? ' on' : ''), onclick: () => UI.go('matches', id),
@@ -158,10 +159,132 @@
     });
   }
 
+  /** строка команды с флагом или эмблемой */
+  function euroTeamRow(g, t, opts = {}) {
+    const club = t.id && g.clubs[t.id];
+    return h('span', { class: 'row', style: 'gap:6px;align-items:center;min-width:0' },
+      t.code && S.Flags ? S.Flags.svg(t.code, 15) : (club ? UI.crest(club, 17) : null),
+      h('span', { class: 'ellipsis' + (t.ours || opts.me ? ' accent' : ''), text: t.name }));
+  }
+
+  /** кто из лиги в каком еврокубке играет в этом сезоне */
+  function euroSpots(scr, g, club) {
+    const qual = g.euroBackground || g.euroQual;
+    if (!qual) return;
+    scr.appendChild(h('div', { class: 'section-title', text: 'Путёвки этого сезона' }));
+    EURO_CUPS.forEach((cup) => {
+      const ids = qual[cup.id] || [];
+      const box = h('div', { class: 'card tight' },
+        h('div', { class: 'row between mb' },
+          h('b', { text: cup.name }),
+          h('span', { class: 'tiny dim', text: 'от ' + U.num(cup.minCapacity) + ' мест' + (cup.needMedia ? ' · медиа 2 ур.' : '') })));
+      if (!ids.length) box.appendChild(h('div', { class: 'tiny dim', text: 'Участники не определены.' }));
+      ids.forEach((id) => {
+        const c = g.clubs[id];
+        if (!c) return;
+        const ok = Sn.euroLicensed(g, c, cup);
+        box.appendChild(h('div', { class: 'row between', style: 'padding:4px 0' },
+          euroTeamRow(g, { id, name: c.name, ours: c.isPlayer }),
+          h('span', { class: 'pill ' + (ok ? 'good' : 'bad'), text: ok ? 'лицензия' : 'арена мала' })));
+      });
+      scr.appendChild(box);
+    });
+    scr.appendChild(h('div', { class: 'card tight tiny muted' },
+      'Путёвки распределяет итоговая таблица Суперлиги: 1–2-е места — Лига чемпионов, 3–4-е — Кубок CEV, '
+      + '5–6-е — Кубок Вызова. Если арена не проходит лицензирование, место передают следующему клубу.'));
+  }
+
+  /** итоги прошлых еврокубковых сезонов: кто как выступил и кто взял трофей */
+  function euroResults(scr, g) {
+    const hist = g.euroHistory || [];
+    if (!hist.length) {
+      scr.appendChild(h('div', { class: 'card tight tiny muted', text: 'Итоги еврокубков появятся после первого сезона.' }));
+      return;
+    }
+    const last = hist[0];
+    scr.appendChild(h('div', { class: 'section-title', text: 'Итоги сезона ' + last.season }));
+    Object.keys(last.cups).forEach((id) => {
+      const c = last.cups[id];
+      const box = h('div', { class: 'card tight' },
+        h('div', { class: 'row between mb' },
+          h('b', { text: c.name }),
+          c.winner ? h('span', { class: 'pill ' + (c.winner.ours ? 'accent' : ''), text: '🏆 ' + c.winner.name }) : null));
+      (c.teams || []).filter((t) => t.ours).forEach((t) => {
+        box.appendChild(h('div', { class: 'row between', style: 'padding:4px 0' },
+          euroTeamRow(g, t),
+          h('span', { class: 'tiny ' + (t.stage === 'win' ? 'accent' : t.stage === 'group' ? 'dim' : ''), text: t.label })));
+      });
+      if (c.host) box.appendChild(h('div', { class: 'tiny dim mt-xs', text: '«Финал четырёх» принимал ' + c.host.city + ' (' + c.host.country + ')' }));
+      scr.appendChild(box);
+    });
+
+    if (hist.length > 1) {
+      scr.appendChild(h('div', { class: 'section-title', text: 'Трофеи прошлых лет' }));
+      const box = h('div', { class: 'card', style: 'padding:0' });
+      hist.slice(1, 7).forEach((sea) => {
+        Object.keys(sea.cups).forEach((id) => {
+          const c = sea.cups[id];
+          if (!c.winner) return;
+          box.appendChild(h('div', { class: 'row between', style: 'padding:8px 12px;border-bottom:1px solid var(--line)' },
+            h('span', { class: 'tiny dim', text: sea.season + ' · ' + c.short }),
+            h('span', { class: 'small' + (c.winner.ours ? ' accent' : ''), text: c.winner.name })));
+        });
+      });
+      scr.appendChild(box);
+    }
+  }
+
+  /** чемпионаты Европы: кто из какой страны в какой еврокубок попал */
+  function euroLeagues(scr, g) {
+    const leagues = g.euroLeagues;
+    if (!leagues || !leagues.length) return;
+    const CUP_SHORT = { ucl: 'ЛЧ', cev: 'КCEV', ch: 'КВ' };
+    scr.appendChild(h('div', { class: 'section-title', text: 'Чемпионаты Европы' }));
+    scr.appendChild(h('div', { class: 'card tight tiny muted' },
+      'Путёвки страна получает по коэффициенту: сильные чемпионаты отдают в Лигу чемпионов два клуба, '
+      + 'слабые — ни одного. Ниже — итоговые места и кому что досталось.'));
+    leagues.forEach((l) => {
+      const open = UI.euroOpen === l.country;
+      const head = h('button', {
+        class: 'row between', style: 'width:100%;background:none;border:0;color:inherit;padding:10px 12px;text-align:left',
+        onclick: () => { UI.euroOpen = open ? null : l.country; UI.render(); },
+      },
+        h('span', { class: 'row', style: 'gap:8px;align-items:center' },
+          S.Flags && l.code ? S.Flags.svg(l.code, 17) : null,
+          h('b', { text: l.country })),
+        h('span', { class: 'row', style: 'gap:8px;align-items:center' },
+          h('span', { class: 'tiny dim', text: 'коэф. ' + l.power }),
+          h('span', { class: 'tiny dim', text: open ? '▾' : '▸' })));
+      const box = h('div', { class: 'card', style: 'padding:0' }, head);
+      if (open) {
+        l.clubs.forEach((c) => {
+          box.appendChild(h('div', {
+            class: 'row between', style: 'padding:6px 12px;border-top:1px solid var(--line)',
+          },
+            h('span', { class: 'row', style: 'gap:8px;min-width:0' },
+              h('span', { class: 'tiny dim', style: 'flex:0 0 16px', text: c.place + '.' }),
+              h('span', { class: 'small ellipsis', text: c.name })),
+            c.cup
+              ? h('span', { class: 'pill ' + (c.cup === 'ucl' ? 'accent' : ''), text: CUP_SHORT[c.cup] })
+              : h('span', { class: 'tiny dim', text: '—' })));
+        });
+      }
+      scr.appendChild(box);
+    });
+  }
+
   function tabEuro(scr, club) {
     const g = UI.game;
     const eu = g.euro;
-    if (!eu) { scr.appendChild(h('div', { class: 'empty', text: 'В этом сезоне клуб не играет в еврокубках.' })); return; }
+    if (!eu) {
+      scr.appendChild(h('div', { class: 'card tight' },
+        h('b', { text: 'Клуб не играет в Европе' }),
+        h('div', { class: 'tiny dim', text: 'В этом сезоне путёвки достались другим. Ниже — кто куда попал и чем всё закончилось.' })));
+      euroSpots(scr, g, club);
+      euroResults(scr, g);
+      euroLeagues(scr, g);
+      return;
+    }
     const cup = EURO_CUPS.find((c) => c.id === eu.cupId);
     scr.appendChild(h('div', { class: 'card tight' },
       h('b', { text: cup.name }),
@@ -192,6 +315,21 @@
     scr.appendChild(box);
     scr.appendChild(h('div', { class: 'card tight tiny muted' },
       'Лицензия CEV: арена от ' + U.num(cup.minCapacity) + ' мест' + (cup.needMedia ? ' и медиа-инфраструктура 2-го уровня' : '') + '.'));
+
+    // жеребьёвка: из каких корзин достались соперники
+    if (eu.draw && eu.draw.rivals) {
+      scr.appendChild(h('div', { class: 'section-title', text: 'Жеребьёвка' }));
+      const dbox = h('div', { class: 'card tight' },
+        h('div', { class: 'tiny dim mb', text: 'В группу попадает по одному сопернику из каждой корзины:' }));
+      eu.draw.rivals.forEach((r, i) => dbox.appendChild(h('div', { class: 'row between', style: 'padding:3px 0' },
+        euroTeamRow(g, r),
+        h('span', { class: 'tiny dim', text: 'корзина ' + (i + 1) }))));
+      scr.appendChild(dbox);
+    }
+
+    euroSpots(scr, g, club);
+    euroResults(scr, g);
+    euroLeagues(scr, g);
   }
 
   /* отчёт о матче */
@@ -877,6 +1015,27 @@
       UI.stat(nat.power + '', 'класс состава'),
       UI.stat(nat.matches.length + '', 'матчей'),
       UI.stat(nat.matches.filter((m) => m.score[0] > m.score[1]).length + '', 'побед')));
+
+    // жеребьёвка турнира: корзины и получившиеся группы
+    if (nat.draw && nat.draw.groups) {
+      scr.appendChild(h('div', { class: 'section-title', text: 'Жеребьёвка' }));
+      const pots = h('div', { class: 'card tight' },
+        h('div', { class: 'tiny dim mb', text: 'Корзины по рейтингу — из каждой по команде в группу:' }));
+      nat.draw.pots.forEach((pot) => {
+        pots.appendChild(h('div', { class: 'row between', style: 'padding:3px 0;gap:8px' },
+          h('span', { class: 'tiny dim', style: 'flex:0 0 62px', text: 'корзина ' + pot.n }),
+          h('span', { class: 'grow tiny ellipsis', text: pot.teams.map((t) => t.name).join(', ') })));
+      });
+      scr.appendChild(pots);
+      const grid = h('div', { class: 'card tight' });
+      nat.draw.groups.forEach((grp) => {
+        grid.appendChild(h('div', { class: 'small mb', text: 'Группа ' + grp.name }));
+        grp.teams.forEach((t) => grid.appendChild(h('div', { class: 'row', style: 'gap:6px;padding:2px 0 2px 8px;align-items:center' },
+          t.code && S.Flags ? S.Flags.svg(t.code, 15) : null,
+          h('span', { class: 'small ellipsis' + (t.ours ? ' accent' : ''), text: t.name }))));
+      });
+      scr.appendChild(grid);
+    }
 
     scr.appendChild(h('div', { class: 'section-title', text: 'Матчи сборной' }));
     nat.matches.forEach((m) => {

@@ -257,6 +257,7 @@
       });
     });
     buildCup(game);
+    buildEuroLeagues(game);   // чемпионаты Европы и их путёвки на этот сезон
     buildEuro(game);
     // трибуны: абонементы на сезон и ожидания
     Object.values(game.clubs).forEach((c) => {
@@ -383,9 +384,17 @@
       return;
     }
     const rng = game._rng;
-    const pool = rng.shuffle(game.euroClubs.slice()).sort((a, b) => b.power - a.power);
-    const band = cupId === 'ucl' ? pool.slice(0, 14) : cupId === 'cev' ? pool.slice(8, 24) : pool.slice(16);
-    const rivals = rng.shuffle(band).slice(0, 3);
+    const band = euroBand(game, cupId);
+    // жеребьёвка по корзинам: из каждой — по сопернику, а не три случайных клуба подряд
+    const ranked = band.slice().sort((a, b) => b.power - a.power);
+    const potSize = Math.max(1, Math.floor(ranked.length / 3));
+    const pots = [0, 1, 2].map((i) => ranked.slice(i * potSize, (i + 1) * potSize));
+    const rivals = pots.map((pot) => rng.pick(pot.length ? pot : ranked)).filter((r, i, arr) => arr.indexOf(r) === i);
+    while (rivals.length < 3) {
+      const extra = rng.pick(ranked.filter((r) => rivals.indexOf(r) < 0));
+      if (!extra) break;
+      rivals.push(extra);
+    }
     const groupIds = [clubId].concat(rivals.map((r) => r.id));
     const rounds = W.roundRobin(groupIds, rng);
     // «Финал четырёх» CEV играют на нейтральной площадке: город объявляют заранее
@@ -394,6 +403,10 @@
     const host = { city: rng.pick(hostCountry.cities), country: hostCountry.country, code: hostCountry.code };
     game.euro = {
       cupId, name: cup.name, short: cup.short, group: groupIds, host,
+      draw: {
+        pots: pots.map((pot, i) => ({ n: i + 1, teams: pot.slice(0, 6).map((e) => ({ name: e.name, code: e.code, country: e.country })) })),
+        rivals: rivals.map((r) => ({ name: r.name, code: r.code, country: r.country })),
+      },
       table: Object.fromEntries(groupIds.map((id) => [id, { p: 0, w: 0, l: 0, pts: 0, setsW: 0, setsL: 0 }])),
       stage: 'group', knockout: [], done: false, result: null,
     };
@@ -415,6 +428,172 @@
     S.Feed.event(game, club, 'host', {
       cup: cup.short, city: host.city, country: host.country, club: club.name,
     }, 1, { authors: ['euro'] });
+  }
+
+  /* ---------- фоновые еврокубки ---------- */
+  /* Клуб игрока проходит еврокубок по-настоящему, матч за матчем. Остальные наши участники
+     раньше просто числились в списке — теперь их турнир доигрывается абстрактно, чтобы в лиге
+     было видно, кто как выступил в Европе и кто вообще выиграл трофей. */
+
+  /** проходит ли клуб лицензирование CEV под конкретный турнир */
+  function euroLicensed(game, club, cup) {
+    if (!club) return false;
+    const cap = W.arenaCapacity(club);
+    return cap >= cup.minCapacity && (!cup.needMedia || club.arena.media >= 2);
+  }
+
+  /* ---------- чемпионаты Европы ---------- */
+  /* У каждой страны свой чемпионат: клубы расставляются по силе с сезонной встряской,
+     а путёвки в еврокубки раздаются по коэффициенту страны — как в реальной таблице CEV. */
+
+  /** сколько путёвок каждого уровня даёт страна по своему коэффициенту */
+  function countryQuota(power) {
+    if (power >= 85) return { ucl: 2, cev: 1 };
+    if (power >= 70) return { ucl: 1, cev: 1 };
+    if (power >= 63) return { ucl: 1, cev: 0 };
+    return { ucl: 0, cev: 1 };
+  }
+
+  /** разложить клубы каждой страны по местам и путёвкам на сезон */
+  function buildEuroLeagues(game) {
+    const rng = game._rng;
+    const byCountry = {};
+    game.euroClubs.forEach((c) => { (byCountry[c.country] = byCountry[c.country] || []).push(c); });
+    const meta = {};
+    S.EURO_POOL.forEach((c) => { meta[c.country] = c; });
+    game.euroLeagues = Object.keys(byCountry).map((country) => {
+      const info = meta[country] || { power: 60, code: '' };
+      const quota = countryQuota(info.power);
+      // сезонная встряска: чемпион страны меняется от года к году
+      const order = byCountry[country].slice()
+        .sort((a, b) => (b.power + rng.range(-6, 6)) - (a.power + rng.range(-6, 6)));
+      return {
+        country, code: info.code, power: info.power,
+        clubs: order.map((c, i) => {
+          const place = i + 1;
+          const cup = place <= quota.ucl ? 'ucl'
+            : place <= quota.ucl + quota.cev ? 'cev'
+              : place <= quota.ucl + quota.cev + 2 ? 'ch' : null;
+          return { id: c.id, name: c.name, city: c.city, place, cup, power: c.power };
+        }),
+      };
+    }).sort((a, b) => b.power - a.power);
+    return game.euroLeagues;
+  }
+
+  /** европейские соперники турнира: сначала те, кто реально получил такую путёвку */
+  function euroBand(game, cupId) {
+    const leagues = game.euroLeagues || buildEuroLeagues(game);
+    const byId = {};
+    game.euroClubs.forEach((c) => { byId[c.id] = c; });
+    const qualified = [];
+    leagues.forEach((l) => l.clubs.forEach((c) => { if (c.cup === cupId && byId[c.id]) qualified.push(byId[c.id]); }));
+    if (qualified.length >= 6) return qualified;
+    // если путёвок не хватило, добираем по силе
+    const pool = game.euroClubs.slice().sort((a, b) => b.power - a.power);
+    const rest = pool.filter((c) => qualified.indexOf(c) < 0);
+    const extra = cupId === 'ucl' ? rest.slice(0, 10) : cupId === 'cev' ? rest.slice(2, 20) : rest.slice(6);
+    return qualified.concat(extra);
+  }
+
+  const STAGE_LABEL = { group: 'Групповой этап', sf: 'Полуфинал', final: 'Финал', win: 'Победа' };
+
+  /** разыграть один турнир: восемь команд, две группы, полуфиналы и финал */
+  function runOneCup(game, cupId, ourIds) {
+    const rng = game._rng;
+    const cup = EURO_CUPS.find((c) => c.id === cupId);
+    const ours = ourIds.map((id) => game.clubs[id]).filter((c) => c && euroLicensed(game, c, cup))
+      .map((c) => ({ id: c.id, name: c.name, ours: true, power: W.clubPower(game, c) }));
+    // сила европейцев приводится к шкале составов: их заявка генерируется как power * 0.86 + 6
+    const foreign = rng.shuffle(euroBand(game, cupId)).slice(0, Math.max(2, 8 - ours.length))
+      .map((e) => ({ id: e.id, name: e.name, country: e.country, code: e.code, power: e.power * 0.86 + 6 }));
+    const teams = ours.concat(foreign).slice(0, 8);
+    if (teams.length < 4) return null;
+    const result = { cupId, name: cup.name, short: cup.short, teams: [], winner: null, host: null };
+
+    // групповой этап: две группы, дальше проходят по двое
+    const shuffled = rng.shuffle(teams.slice());
+    const groups = [shuffled.filter((_, i) => i % 2 === 0), shuffled.filter((_, i) => i % 2 === 1)];
+    const advanced = [];
+    groups.forEach((grp) => {
+      const pts = new Map(grp.map((t) => [t, 0]));
+      for (let i = 0; i < grp.length; i++) {
+        for (let j = i + 1; j < grp.length; j++) {
+          const r = abstractMatch(rng, grp[i].power, grp[j].power);
+          const w = r.winner === 'h' ? grp[i] : grp[j];
+          pts.set(w, pts.get(w) + (Math.max(r.score[0], r.score[1]) === 3 && Math.min(r.score[0], r.score[1]) <= 1 ? 3 : 2));
+        }
+      }
+      const order = grp.slice().sort((a, b) => pts.get(b) - pts.get(a) || b.power - a.power);
+      order.forEach((t, i) => { t.stage = 'group'; t.groupPlace = i + 1; });
+      advanced.push(order[0], order[1]);
+    });
+
+    // полуфиналы и финал
+    const sf = [[advanced[0], advanced[3]], [advanced[2], advanced[1]]].filter((p) => p[0] && p[1]);
+    const finalists = sf.map((pair) => {
+      pair.forEach((t) => { t.stage = 'sf'; });
+      const r = abstractMatch(rng, pair[0].power, pair[1].power);
+      return r.winner === 'h' ? pair[0] : pair[1];
+    });
+    let champion = finalists[0];
+    if (finalists.length === 2) {
+      finalists.forEach((t) => { t.stage = 'final'; });
+      const r = abstractMatch(rng, finalists[0].power, finalists[1].power);
+      champion = r.winner === 'h' ? finalists[0] : finalists[1];
+    }
+    if (champion) champion.stage = 'win';
+
+    result.groups = groups.map((grp, i) => ({
+      name: String.fromCharCode(65 + i),
+      teams: grp.map((t) => ({ name: t.name, ours: !!t.ours, code: t.code || null, place: t.groupPlace || null })),
+    }));
+    result.teams = teams.map((t) => ({
+      id: t.id, name: t.name, ours: !!t.ours, country: t.country || null, code: t.code || null,
+      stage: t.stage || 'group', label: STAGE_LABEL[t.stage || 'group'],
+    }));
+    result.winner = champion ? { id: champion.id, name: champion.name, ours: !!champion.ours, country: champion.country || null, code: champion.code || null } : null;
+    return result;
+  }
+
+  /** разыграть все три еврокубка за сезон и записать итог в историю */
+  function runBackgroundEuro(game) {
+    const qual = game.euroBackground || game.euroQual || seedEuroQual(game);
+    const season = { season: game.seasonLabel, cups: {} };
+    EURO_CUPS.forEach((cup) => {
+      const res = runOneCup(game, cup.id, qual[cup.id] || []);
+      if (!res) return;
+      // клуб игрока прошёл турнир по-настоящему — берём его настоящий результат
+      const eu = game.euro;
+      if (eu && eu.cupId === cup.id && game.playerClubId) {
+        const mine = res.teams.find((t) => t.id === game.playerClubId);
+        if (mine) {
+          mine.label = eu.result === 'ПОБЕДА' ? STAGE_LABEL.win : (eu.result || mine.label);
+          mine.stage = eu.result === 'ПОБЕДА' ? 'win' : mine.stage;
+          mine.real = true;
+          if (eu.result === 'ПОБЕДА') {
+            res.winner = { id: mine.id, name: mine.name, ours: true, country: null, code: null };
+            res.teams.forEach((t) => { if (t.id !== mine.id && t.stage === 'win') t.stage = 'final'; });
+          }
+        }
+        res.host = eu.host || null;
+      }
+      season.cups[cup.id] = res;
+    });
+    game.euroSeason = season;
+    game.euroHistory = game.euroHistory || [];
+    game.euroHistory.unshift(season);
+    if (game.euroHistory.length > 12) game.euroHistory.pop();
+    // лига узнаёт, кто взял трофей
+    const club = game.playerClubId && game.clubs[game.playerClubId];
+    if (club && S.Feed) {
+      const champs = Object.values(season.cups).filter((c) => c.winner)
+        .map((c) => c.short + ' — ' + c.winner.name).join('; ');
+      if (champs) {
+        game.inbox.unshift({ week: 0, kind: 'euro', text: 'Еврокубки сезона ' + season.season + ' разыграны: ' + champs + '.' });
+      }
+    }
+    return season;
   }
 
   /** для первого сезона: путёвки раздаём по репутации клубов Суперлиги */
@@ -586,7 +765,8 @@
     CUP_ROUNDS, queueCeremony, seasonAwards, PLAYOFF_WEEKS, EURO_KO, SEASON_END_WEEK, MONTH_WEEKS,
     team, isForeign, teamName, abstractMatch, buildSide, buildEuroSide, simMatch, createMatch, finalizeMatch, applyToTable,
     startSeason, seasonLabel, makeObjective, buildCup, scheduleCupRound, resolveCupWeek,
-    buildEuro, seedEuroQual, applyEuroTable, euroStandings, advanceEuro,
+    buildEuro, seedEuroQual, applyEuroTable, euroStandings, advanceEuro, runBackgroundEuro, euroLicensed, STAGE_LABEL,
+    buildEuroLeagues, countryQuota, euroBand,
     weeklyRecovery, available, afterMatch, ensureEuroSquad,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

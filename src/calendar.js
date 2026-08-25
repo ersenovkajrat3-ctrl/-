@@ -466,6 +466,9 @@
 
     S.Transfers.aiOffseason(game);
 
+    // еврокубки остальных клубов лиги доигрываются абстрактно — до трофея
+    report.euro = Sn.runBackgroundEuro(game);
+
     // лето: сборные разыгрывают свой турнир
     const nat = S.National.run(game);
     report.national = nat;
