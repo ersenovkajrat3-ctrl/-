@@ -4,7 +4,7 @@ const path = require('path');
 const BASE = process.env.BASE || 'http://127.0.0.1:8899';
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'ru-RU' });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: 'dark', isMobile: true, hasTouch: true, locale: 'ru-RU' });
   const page = await ctx.newPage();
   page.setDefaultTimeout(8000);
   const errors = [];

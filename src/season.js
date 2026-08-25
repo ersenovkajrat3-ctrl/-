@@ -238,6 +238,9 @@
     Object.values(game.clubs).forEach((c) => {
       c.form = [];
       c.finance.seasonIncome = 0; c.finance.seasonSpend = 0;
+      c.finance.lastSnapshot = { income: 0, spend: 0 };
+      c.positionLog = [];
+      c.attendanceLog = [];
       W.autoLineupAvailable(game, c);
     });
     // лига

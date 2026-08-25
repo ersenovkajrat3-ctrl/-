@@ -105,7 +105,7 @@
       box.appendChild(h('button', {
         class: 'cp', onclick: () => confirmClub(c),
       },
-        h('span', { class: 'crest', text: UI.crestLetter(c.name) }),
+        UI.crest(c, 40),
         h('span', { class: 'grow' },
           h('div', { style: 'font-weight:700' }, c.name, h('span', { class: 'dim', style: 'font-weight:400', text: ' · ' + c.city })),
           h('div', { class: 'tiny dim', text: 'состав ' + power + ' · арена ' + U.num(W.arenaCapacity(c)) + ' мест · бюджет ' + U.money(c.finance.balance) })),
@@ -121,7 +121,11 @@
       const power = Math.round(W.clubPower(g, club));
       const squad = club.squad.map((id) => g.players[id]).sort((a, b) => P.overall(b) - P.overall(a)).slice(0, 5);
       return [
-        h('div', { class: 'small muted mb', text: club.city + ' · ' + DIVISIONS[club.division].name }),
+        h('div', { class: 'row mb', style: 'gap:12px' },
+          UI.crest(club, 56),
+          h('div', null,
+            h('div', { class: 'small muted', text: club.city + ' · ' + DIVISIONS[club.division].name }),
+            h('div', { class: 'tiny dim', text: 'форма: ' + S.Identity.of(club).palette }))),
         h('div', { class: 'stat-grid mb' },
           UI.stat(power + '', 'состав'),
           UI.stat(U.num(W.arenaCapacity(club)), 'арена'),
@@ -148,6 +152,7 @@
     const saved = S.Save.loadSettings();
     if (saved) g.settings = Object.assign(g.settings || {}, saved);
     S.Audio.setEnabled(g.settings.sound !== false);
+    UI.applyTheme();
     document.getElementById('screen').className = 'screen';
     UI.tab = 'club';
     UI.render();
@@ -273,7 +278,7 @@
           }, 'Принять клуб');
         },
       },
-        h('span', { class: 'crest', text: UI.crestLetter(c.name) }),
+        UI.crest(c, 40),
         h('span', { class: 'grow' },
           h('div', { style: 'font-weight:700', text: c.name }),
           h('div', { class: 'tiny dim', text: DIVISIONS[c.division].name + ' · состав ' + Math.round(W.clubPower(g, c)) + ' · трибуны ' + Math.round(c.fans.mood) }))));
@@ -286,6 +291,9 @@
 
   /* ---------- инициализация ---------- */
   function init() {
+    // тема применяется до первого экрана, чтобы не мигнуть чужим фоном
+    const saved = S.Save.loadSettings();
+    if (saved && saved.theme && saved.theme !== 'system') document.documentElement.dataset.theme = saved.theme;
     S.Audio.init();
     ['click', 'touchstart'].forEach((e) => window.addEventListener(e, () => S.Audio.resume(), { once: true }));
     startScreen();

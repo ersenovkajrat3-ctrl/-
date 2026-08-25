@@ -2,7 +2,7 @@
 const { chromium } = require('playwright');
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: 'dark', isMobile: true, hasTouch: true });
   const page = await ctx.newPage();
   page.setDefaultTimeout(8000);
   const errors = [];

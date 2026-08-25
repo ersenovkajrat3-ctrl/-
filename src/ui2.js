@@ -33,6 +33,7 @@
       h('span', { style: 'flex:0 0 34px' },
         h('div', { class: 'tiny dim center', text: 'н.' + fx.week }),
         h('div', { class: 'tiny center', text: isHome ? 'дома' : 'гости' })),
+      opp && opp.identity ? UI.crest(opp, 26) : null,
       h('span', { class: 'grow' },
         h('div', { class: 'p-name ellipsis', text: opp ? opp.name : '—' }),
         h('div', { class: 'p-meta', text: UI.compLabel(fx) + (fx.cancelled ? ' · не понадобился' : '') })),
@@ -80,7 +81,7 @@
       if (i >= size - meta.relegate && meta.relegate) cls.push('rel');
       body.appendChild(h('tr', { class: cls.join(' ') },
         h('td', { text: i + 1 }),
-        h('td', { class: 'name', text: c.name }),
+        h('td', { class: 'name' }, h('span', { class: 'row', style: 'gap:6px' }, UI.crest(c, 18), h('span', { class: 'ellipsis', text: c.name }))),
         h('td', { text: r.p }), h('td', { text: r.w }), h('td', { text: r.l }),
         h('td', { text: r.setsW + ':' + r.setsL }),
         h('td', null, h('b', { text: r.pts }))));
@@ -377,8 +378,11 @@
     if (!g.feed.length) { scr.appendChild(h('div', { class: 'empty', text: 'Лента пока пуста — сыграйте матч.' })); return; }
     const box = h('div', { class: 'card', style: 'padding:0' });
     g.feed.slice(0, 60).forEach((post) => {
+      const postClub = g.clubs[post.clubId];
       box.appendChild(h('div', { class: 'post' },
-        h('div', { class: 'ava ' + (post.author === 'club' ? 'official' : post.author), text: post.avatar }),
+        post.author === 'club' && postClub
+          ? h('div', { class: 'ava-crest' }, UI.crest(postClub, 36))
+          : h('div', { class: 'ava ' + post.author, text: post.avatar }),
         h('div', { class: 'grow' },
           h('div', { class: 'hd' }, h('b', { text: post.label }), h('span', { class: 'dim', text: ' ' + post.handle })),
           h('div', { class: 'txt', text: post.text }),
@@ -408,6 +412,19 @@
         h('div', { class: 'small' }, 'Лицензия CEV'),
         h('div', { class: 'tiny dim', text: 'от 2000 мест и медиа-инфраструктура 2-го уровня' })),
       h('span', { class: 'pill ' + (license ? 'good' : 'bad'), text: license ? 'есть' : 'нет' })));
+
+    const att2 = club.attendanceLog || [];
+    if (att2.length >= 2) {
+      scr.appendChild(h('div', { class: 'card' },
+        h('div', { class: 'row between mb' }, h('b', { text: 'Посещаемость домашних матчей' }),
+          h('span', { class: 'tiny dim', text: 'из ' + U.num(cap) + ' мест' })),
+        S.Charts.line(att2.map((a, i) => ({ x: i + 1, y: a.count })), {
+          minY: 0, maxY: cap, area: true, color: S.Charts.C2,
+          ticks: [0, Math.round(cap / 2), cap],
+          fmtY: (v) => U.num(v),
+          xFirst: 'матч 1', xLast: 'матч ' + att2.length,
+        })));
+    }
 
     scr.appendChild(h('div', { class: 'section-title', text: 'Цена билета' }));
     const price = h('input', { type: 'range', min: 150, max: 3500, step: 50, value: club.ticketPrice, style: 'width:100%' });
@@ -515,6 +532,17 @@
       h('div', { class: 'tiny dim', text: 'БАЛАНС' }),
       h('div', { class: 'big ' + (club.finance.balance < 0 ? 'bad' : ''), text: U.money(club.finance.balance) }),
       h('div', { class: 'small ' + (sum.monthly >= 0 ? 'good' : 'bad'), text: (sum.monthly >= 0 ? '+' : '') + U.money(sum.monthly) + ' в месяц' })));
+
+    const months = club.finance.monthly || [];
+    if (months.length >= 2) {
+      scr.appendChild(h('div', { class: 'card' },
+        h('div', { class: 'row between mb' }, h('b', { text: 'Месяц к месяцу' }),
+          h('span', { class: 'tiny dim', text: 'доход минус расход' })),
+        S.Charts.signedBars(months.map((m) => ({ value: m.income - m.spend, label: 'н.' + m.week })), {
+          caption: 'столбик вверх — месяц закрыт в плюс',
+          fmtValue: (v) => (v >= 0 ? '+' : '−') + U.money(Math.abs(v)).replace(' ₽', ''),
+        })));
+    }
 
     scr.appendChild(h('div', { class: 'card' },
       line('Спонсоры', sum.sponsors), line('Взнос учредителя', sum.support),
@@ -656,23 +684,110 @@
     }
   };
 
-  /* ================= ИСТОРИЯ ================= */
+  /* ================= КАРЬЕРА И ВИТРИНА ТРОФЕЕВ ================= */
+  const TROPHY_KINDS = [
+    { match: (n) => n.indexOf('Лига чемпионов') === 0, label: 'Лига чемпионов CEV', tint: '#2dd4bf' },
+    { match: (n) => n.indexOf('Кубок CEV') === 0 || n.indexOf('Кубок Вызова') === 0, label: 'Еврокубок', tint: '#60a5fa' },
+    { match: (n) => n === 'Кубок страны', label: 'Кубок страны', tint: '#e0e7ff' },
+    { match: (n) => n === 'Суперлига', label: 'Чемпион Суперлиги', tint: '#ff9f1c' },
+    { match: () => true, label: 'Титул дивизиона', tint: '#a3e635' },
+  ];
+  function trophyKind(name) { return TROPHY_KINDS.find((k) => k.match(name)); }
+
+  /** кубок на витрине: тот же вектор, что и на церемонии, только мельче */
+  function shelfTrophy(name, season, tint) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 120 140');
+    svg.setAttribute('width', '56');
+    svg.setAttribute('height', '66');
+    svg.innerHTML = '<defs><linearGradient id="tg' + Math.random().toString(36).slice(2, 7) + '" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0" stop-color="#ffe6a8"/><stop offset="0.5" stop-color="' + tint + '"/><stop offset="1" stop-color="#a35c00"/></linearGradient></defs>';
+    const grad = svg.querySelector('linearGradient').id;
+    svg.innerHTML += '<g fill="url(#' + grad + ')">' +
+      '<path d="M34 14h52v28a26 26 0 01-52 0z"/>' +
+      '<rect x="53" y="66" width="14" height="20"/>' +
+      '<path d="M38 92h44l4 14H34z"/></g>' +
+      '<path d="M34 20H22a14 14 0 0014 22" fill="none" stroke="url(#' + grad + ')" stroke-width="7" stroke-linecap="round"/>' +
+      '<path d="M86 20h12a14 14 0 01-14 22" fill="none" stroke="url(#' + grad + ')" stroke-width="7" stroke-linecap="round"/>' +
+      '<rect x="28" y="108" width="64" height="12" rx="3" fill="#2a3550"/>';
+    return h('div', { class: 'trophy-item' },
+      svg,
+      h('div', { class: 'tiny', style: 'font-weight:700', text: name }),
+      h('div', { class: 'tiny dim', text: season }));
+  }
+
   UI.screenHistory = function (scr) {
     const g = UI.game;
     const club = g.clubs[g.playerClubId];
-    scr.appendChild(UI.pageHeader('История клуба', 'settings'));
+    scr.appendChild(UI.pageHeader('Карьера', 'settings'));
+
+    const pastClubs = (g.career && g.career.clubs) || [];
+    const seasons = club.history.length + U.sum(pastClubs, (c) => c.seasons);
+    const trophies = club.trophies.length + U.sum(pastClubs, (c) => c.trophies);
+    scr.appendChild(h('div', { class: 'stat-grid mb' },
+      UI.stat(seasons + '', U.plural(seasons, ['сезон', 'сезона', 'сезонов'])),
+      UI.stat(trophies + '', U.plural(trophies, ['трофей', 'трофея', 'трофеев'])),
+      UI.stat(DIVISIONS[club.division].short, 'сейчас')));
+
+    // витрина
+    scr.appendChild(h('div', { class: 'section-title', text: 'Витрина трофеев' }));
     if (club.trophies.length) {
-      scr.appendChild(h('div', { class: 'section-title', text: 'Трофеи' }));
-      club.trophies.forEach((t) => scr.appendChild(h('div', { class: 'card tight row between' },
-        h('b', { text: t.name }), h('span', { class: 'muted small', text: t.season }))));
+      const shelf = h('div', { class: 'trophy-shelf' });
+      club.trophies.slice().reverse().forEach((t) => {
+        shelf.appendChild(shelfTrophy(t.name, t.season, trophyKind(t.name).tint));
+      });
+      scr.appendChild(h('div', { class: 'card' }, shelf));
+    } else {
+      const empty = h('div', { class: 'trophy-shelf empty' });
+      TROPHY_KINDS.slice(0, 4).forEach((k) => {
+        empty.appendChild(h('div', { class: 'trophy-item ghost' },
+          h('div', { class: 'ghost-cup' }),
+          h('div', { class: 'tiny dim', text: k.label })));
+      });
+      scr.appendChild(h('div', { class: 'card' }, empty,
+        h('div', { class: 'tiny dim center mt', text: 'Полка пока пуста — есть что занять.' })));
     }
-    scr.appendChild(h('div', { class: 'section-title', text: 'Сезоны' }));
-    if (!club.history.length) scr.appendChild(h('div', { class: 'empty', text: 'Первый сезон ещё идёт.' }));
-    club.history.slice().reverse().forEach((r) => {
+
+    // лестница дивизионов
+    const hist = club.history;
+    if (hist.length >= 2) {
+      const tierOf = (name) => DIVISIONS.findIndex((d) => d.name === name);
+      scr.appendChild(h('div', { class: 'card' },
+        h('div', { class: 'row between mb' }, h('b', { text: 'Лестница дивизионов' }),
+          h('span', { class: 'tiny dim', text: 'выше — сильнее лига' })),
+        S.Charts.line(hist.map((r, i) => ({ x: i + 1, y: tierOf(r.division) })), {
+          invert: true, minY: 0, maxY: 3, ticks: [0, 1, 2, 3],
+          fmtY: (v) => DIVISIONS[Math.round(v)] ? DIVISIONS[Math.round(v)].short : '',
+          xFirst: hist[0].season, xLast: hist[hist.length - 1].season,
+          height: 120,
+        })));
+    }
+
+    // сезоны
+    scr.appendChild(h('div', { class: 'section-title', text: 'Сезон за сезоном' }));
+    if (hist.length) {
+      scr.appendChild(h('div', { class: 'tiny dim', style: 'padding:0 4px 6px', text: 'Место — по регулярному чемпионату, трофей — по плей-офф.' }));
+    } else {
+      scr.appendChild(h('div', { class: 'empty', text: 'Первый сезон ещё идёт.' }));
+    }
+    hist.slice().reverse().forEach((r) => {
+      const won = club.trophies.filter((t) => t.season === r.season);
       scr.appendChild(h('div', { class: 'card tight row between' },
-        h('span', { class: 'small', text: r.season + ' · ' + r.division }),
-        h('b', { text: r.position + '-е место' })));
+        h('span', { class: 'grow' },
+          h('div', { class: 'small', text: r.season + ' · ' + r.division }),
+          won.length ? h('div', { class: 'tiny accent', text: '🏆 ' + won.map((t) => t.name).join(', ') }) : null),
+        h('span', { class: 'pill' + (r.position === 1 ? ' accent' : r.position <= 4 ? ' good' : ''), text: r.position + '-е' })));
     });
+
+    if (pastClubs.length) {
+      scr.appendChild(h('div', { class: 'section-title', text: 'Прошлые клубы' }));
+      pastClubs.forEach((c) => {
+        scr.appendChild(h('div', { class: 'card tight row between' },
+          h('span', { class: 'small grow', text: c.club }),
+          h('span', { class: 'tiny dim', text: c.seasons + ' ' + U.plural(c.seasons, ['сезон', 'сезона', 'сезонов']) + ' · ' + c.trophies + ' ' + U.plural(c.trophies, ['трофей', 'трофея', 'трофеев']) })));
+      });
+    }
   };
 
   S.UI = UI;

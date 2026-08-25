@@ -60,6 +60,8 @@
   /* ---------- утилиты интерфейса ---------- */
   function ovrClass(v) { return v >= 78 ? 'hi' : v >= 62 ? 'mid' : 'lo'; }
   function crestLetter(name) { return (name || '?').replace(/[«»"]/g, '').trim()[0]; }
+  /** эмблема клуба нужного размера — используется во всех списках */
+  function crest(club, size) { return S.Crest.crestNode(club, size || 30); }
 
   function toast(msg) {
     const t = document.getElementById('toast');
@@ -118,12 +120,14 @@
     bar.innerHTML = '';
     const club = g.clubs[g.playerClubId];
     const fin = club.finance;
-    bar.appendChild(h('div', { class: 'crest', text: crestLetter(club.name) }));
+    bar.appendChild(S.Crest.crestNode(club, 38, 'crest'));
     bar.appendChild(h('div', { class: 'tb-main' },
       h('div', { class: 'tb-club', text: club.name }),
       h('div', { class: 'tb-sub', text: DIVISIONS[club.division].name + ' · сезон ' + g.seasonLabel })));
+    const changed = UI._lastBalance != null && UI._lastBalance !== fin.balance;
+    UI._lastBalance = fin.balance;
     bar.appendChild(h('div', { class: 'tb-right' },
-      h('div', { class: 'tb-money' + (fin.balance < 0 ? ' bad' : ''), text: U.money(fin.balance) }),
+      h('div', { class: 'tb-money' + (fin.balance < 0 ? ' bad' : '') + (changed ? ' flash' : ''), text: U.money(fin.balance) }),
       h('div', { class: 'tb-week', text: g.week ? 'неделя ' + g.week + ' · ' + U.dateLabel(g.week * 7) : (g.phase === 'offseason' ? 'межсезонье' : 'предсезон') })));
   }
 
@@ -147,6 +151,16 @@
       bar.appendChild(btn);
     });
   }
+
+  /** тема применяется к корню документа: system — как в системе */
+  UI.applyTheme = function () {
+    const t = (UI.game && UI.game.settings && UI.game.settings.theme) || 'system';
+    const root = document.documentElement;
+    if (t === 'system') delete root.dataset.theme;
+    else root.dataset.theme = t;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', t === 'light' ? '#eff2f8' : '#080d17');
+  };
 
   UI.go = function (tab, sub) {
     UI.tab = tab;
@@ -183,6 +197,7 @@
   UI.pageHeader = pageHeader;
   UI.ovrClass = ovrClass;
   UI.crestLetter = crestLetter;
+  UI.crest = crest;
 
   /* ---------- экран «Клуб» ---------- */
   function screenClub(scr) {
@@ -266,6 +281,22 @@
           h('i', { style: 'width:100%' }),
           h('b', { style: 'left:calc(' + Math.round(club.fans.mood) + '% - 1.5px)' }))),
       h('span', { class: 'pill accent', text: Math.round(club.fans.mood) })));
+
+    // траектория места по турам
+    const log = club.positionLog || [];
+    if (log.length >= 3) {
+      const size = div.clubIds.length;
+      scr.appendChild(h('div', { class: 'card' },
+        h('div', { class: 'row between mb' },
+          h('b', { text: 'Место по ходу сезона' }),
+          h('span', { class: 'pill' + (pos <= 4 ? ' good' : ''), text: pos + '-е' })),
+        S.Charts.line(log.map((r) => ({ x: r.p, y: r.pos })), {
+          invert: true, minY: 1, maxY: size,
+          ticks: [1, Math.round(size / 2), size],
+          xFirst: 'тур 1', xLast: 'тур ' + log[log.length - 1].p,
+          caption: 'выше — лучше; последняя точка — сегодня',
+        })));
+    }
 
     // форма
     scr.appendChild(h('div', { class: 'card tight row between mt' },
@@ -535,6 +566,7 @@
           stat(p.potential + '', 'потенциал'),
           stat(Math.round(p.stamina) + '', 'выносл.')),
         h('div', { class: 'section-title', style: 'margin-left:0', text: 'Навыки' }),
+        skillRadar(p),
         ...skills,
         h('div', { class: 'section-title', style: 'margin-left:0', text: 'Сезон' }),
         h('div', { class: 'stat-grid mb' },
@@ -570,6 +602,27 @@
       return nodes;
     });
   };
+
+  /** радар навыков игрока против среднего по своему амплуа в составе */
+  function skillRadar(p) {
+    const g = UI.game;
+    const club = g.clubs[g.playerClubId];
+    const axes = P.SKILLS.map((k) => P.SKILL_NAMES[k]);
+    const mine = P.SKILLS.map((k) => p.skills[k]);
+    const peers = (club ? club.squad.map((id) => g.players[id]) : [])
+      .filter((x) => x && x.role === p.role && x.id !== p.id);
+    const series = [{ values: mine, color: S.Charts.C1, label: P.shortName(p) }];
+    if (peers.length) {
+      series.unshift({
+        values: P.SKILLS.map((k) => Math.round(U.avg(peers, (x) => x.skills[k]))),
+        color: S.Charts.C2, fill: false, dots: false, label: 'средний ' + ROLES[p.role].name.toLowerCase() + ' состава',
+      });
+    }
+    const box = h('div');
+    box.appendChild(S.Charts.radar(axes, series));
+    box.appendChild(S.Charts.legend(series.map((x) => ({ color: x.color, label: x.label }))));
+    return box;
+  }
 
   /* ---------- тактика ---------- */
   function squadTactics(scr, club) {
@@ -625,6 +678,17 @@
         g.settings.commentary = v; S.Save.saveSettings(g.settings);
       })));
 
+    scr.appendChild(h('div', { class: 'section-title', text: 'Тема' }));
+    const themeSeg = h('div', { class: 'seg' });
+    [['system', 'Системная'], ['dark', 'Тёмная'], ['light', 'Светлая']].forEach(([id, label]) => {
+      themeSeg.appendChild(h('button', {
+        class: (g.settings.theme || 'system') === id ? 'on' : '',
+        onclick: () => { g.settings.theme = id; UI.applyTheme(); S.Save.saveSettings(g.settings); UI.render(); },
+      }, label));
+    });
+    scr.appendChild(h('div', { class: 'card' }, themeSeg,
+      h('div', { class: 'tiny dim mt', text: 'Тёмная — «как в зале», светлая удобнее днём на улице.' })));
+
     scr.appendChild(h('div', { class: 'section-title', text: 'Скорость просмотра матча' }));
     const seg = h('div', { class: 'seg' });
     [['slow', 'Медленно'], ['fast', 'Обычно'], ['turbo', 'Быстро']].forEach(([id, label]) => {
@@ -639,6 +703,7 @@
     scr.appendChild(h('div', { class: 'card' },
       h('div', { class: 'small muted mb', text: 'Лига и клубы вымышленные. Названия можно переписать под себя — например, под реальные команды, которые вы знаете.' }),
       h('button', { class: 'btn full', onclick: () => renameModal(club) }, 'Переименовать клуб'),
+      h('button', { class: 'btn full mt', onclick: () => kitModal(club) }, 'Форма и эмблема'),
       h('button', { class: 'btn full mt', onclick: () => renameAllModal() }, 'Все клубы лиги')));
 
     scr.appendChild(h('div', { class: 'section-title', text: 'Партия' }));
@@ -684,6 +749,73 @@
             club.city = city.value.trim() || club.city;
             club.name = hadTitle ? hadTitle.brand + ' ' + club.city : club.baseName;
             m.close(); UI.render(); toast('Клуб переименован');
+          },
+        }, 'Сохранить'),
+      ];
+    });
+  }
+
+  /** редактор формы: цвет, рисунок майки и форма эмблемы с живым превью */
+  function kitModal(club) {
+    const I = S.Identity;
+    const id = I.of(club);
+    const draft = Object.assign({}, id);
+    modal('Форма и эмблема', (m) => {
+      const preview = h('div', { class: 'row center', style: 'gap:16px;justify-content:center;padding:6px 0 14px' });
+      const redraw = () => {
+        preview.innerHTML = '';
+        const saved = club.identity;
+        club.identity = draft;
+        preview.appendChild(S.Crest.crestNode(club, 74));
+        const shirt = S.Crest.shirtSvg({ shirt: draft.primary, trim: draft.secondary, pattern: draft.pattern }, 74);
+        preview.appendChild(shirt);
+        club.identity = saved;
+      };
+      redraw();
+      const colorRow = h('div', { class: 'row wrap', style: 'gap:8px' });
+      I.PALETTE.forEach((pal) => {
+        colorRow.appendChild(h('button', {
+          class: 'swatch' + (draft.primary === pal.primary ? ' on' : ''),
+          style: 'background:' + pal.primary,
+          title: pal.name,
+          onclick: () => {
+            draft.primary = pal.primary; draft.secondary = pal.trim; draft.palette = pal.name;
+            draft.ink = I.inkOn(pal.primary);
+            m.refresh();
+          },
+        }));
+      });
+      const patternRow = h('div', { class: 'seg' });
+      const patternNames = { solid: 'Сплошная', stripes: 'Полосы', sash: 'Диагональ', hoop: 'Обруч', split: 'Пополам' };
+      I.PATTERNS.forEach((p) => {
+        patternRow.appendChild(h('button', {
+          class: draft.pattern === p ? 'on' : '',
+          onclick: () => { draft.pattern = p; m.refresh(); },
+        }, patternNames[p]));
+      });
+      const crestRow = h('div', { class: 'seg' });
+      const crestNames = { shield: 'Щит', circle: 'Круг', diamond: 'Ромб', hex: 'Шестигр.' };
+      I.CRESTS.forEach((cr) => {
+        crestRow.appendChild(h('button', {
+          class: draft.crest === cr ? 'on' : '',
+          onclick: () => { draft.crest = cr; m.refresh(); },
+        }, crestNames[cr]));
+      });
+      const mono = h('input', {
+        class: 'btn full', style: 'text-align:center;letter-spacing:.1em', maxlength: 3, value: draft.monogram,
+        oninput: (e) => { draft.monogram = e.target.value.toUpperCase().slice(0, 3) || draft.monogram; },
+        onchange: () => m.refresh(),
+      });
+      return [
+        preview,
+        h('div', { class: 'section-title', style: 'margin-left:0', text: 'Цвет' }), colorRow,
+        h('div', { class: 'section-title', style: 'margin-left:0', text: 'Рисунок майки' }), patternRow,
+        h('div', { class: 'section-title', style: 'margin-left:0', text: 'Форма эмблемы' }), crestRow,
+        h('div', { class: 'section-title', style: 'margin-left:0', text: 'Монограмма' }), mono,
+        h('button', {
+          class: 'btn primary full mt', onclick: () => {
+            club.identity = draft;
+            m.close(); UI.render(); toast('Форма обновлена');
           },
         }, 'Сохранить'),
       ];

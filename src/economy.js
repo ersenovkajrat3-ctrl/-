@@ -62,6 +62,17 @@
 
   function monthlyTick(game, club) {
     const out = [];
+    // снимок для графика: сколько заработали и потратили с прошлого месяца
+    const snap = club.finance.lastSnapshot || { income: 0, spend: 0 };
+    club.finance.monthly = club.finance.monthly || [];
+    club.finance.monthly.push({
+      week: game.week,
+      income: Math.round(club.finance.seasonIncome - snap.income),
+      spend: Math.round(club.finance.seasonSpend - snap.spend),
+      balance: Math.round(club.finance.balance),
+    });
+    if (club.finance.monthly.length > 24) club.finance.monthly.shift();
+    club.finance.lastSnapshot = { income: club.finance.seasonIncome, spend: club.finance.seasonSpend };
     const support = founderSupport(club);
     ledger(club, 'founder', 'Взнос учредителя клуба', support);
     out.push({ label: 'Учредитель', amount: support });

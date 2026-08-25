@@ -45,6 +45,10 @@
       const opp = awayIsClub ? game.clubs[fx.a] : Sn.team(game, fx.a);
       const inc = Ec.matchdayIncome(game, game.clubs[fx.h], opp);
       fx.attendance = inc.attendance;
+      const hc = game.clubs[fx.h];
+      hc.attendanceLog = hc.attendanceLog || [];
+      hc.attendanceLog.push({ week: game.week, count: inc.attendance.count, fill: inc.attendance.fill, income: inc.total });
+      if (hc.attendanceLog.length > 30) hc.attendanceLog.shift();
     }
     game.results.unshift({
       week: game.week, type: fx.type, stage: fx.stage, div: fx.div,
@@ -101,6 +105,19 @@
     if (game.euro && (W.EURO_GROUP_WEEKS.includes(game.week) || Object.values(Sn.EURO_KO).includes(game.week))) Sn.advanceEuro(game);
     // плей-офф: продвижение по стадиям
     if (game.playoffs) advancePlayoffs(game);
+    // след для графиков: место в таблице после каждого тура
+    if (game.playerClubId) {
+      const club = game.clubs[game.playerClubId];
+      const div = game.divisions[club.division];
+      const played = div.table[club.id] ? div.table[club.id].p : 0;
+      if (played) {
+        club.positionLog = club.positionLog || [];
+        const last = club.positionLog[club.positionLog.length - 1];
+        if (!last || last.p !== played) {
+          club.positionLog.push({ week: game.week, p: played, pos: W.sortTable(div).indexOf(club.id) + 1 });
+        }
+      }
+    }
     // экономика раз в месяц
     if (Sn.MONTH_WEEKS.includes(game.week)) {
       Object.values(game.clubs).forEach((club) => {

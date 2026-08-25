@@ -6,7 +6,7 @@ const SHOT = path.join(__dirname, '../.shots');
 
 (async () => {
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'ru-RU' });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, colorScheme: 'dark', isMobile: true, hasTouch: true, locale: 'ru-RU' });
   const page = await ctx.newPage();
   page.setDefaultTimeout(6000);
   const errors = [];
@@ -58,6 +58,10 @@ const SHOT = path.join(__dirname, '../.shots');
   await step('16-матч-ускорение', async () => {
     await page.click('.m-ctrl button:has-text("×4")');
     await page.waitForTimeout(800);
+  });
+  await step('16b-статистика', async () => {
+    await page.click('.m-ctrl button:has-text("№")', { timeout: 4000 }).catch(() => {});
+    await page.waitForTimeout(500);
   });
   await step('17-тайм-аут', async () => {
     // панель управления перерисовывается после каждого розыгрыша, поэтому кликаем по селектору

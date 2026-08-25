@@ -57,19 +57,26 @@
 
     const head = h('div', { class: 'm-head' });
     const courtWrap = h('div', { class: 'court-wrap' });
+    const statsBox = h('div', { class: 'live-stats' });
     const logBox = h('div', { class: 'm-log' });
     const ctrl = h('div', { class: 'm-ctrl' });
-    ov.append(head, courtWrap, logBox, ctrl);
+    ov.append(head, courtWrap, statsBox, logBox, ctrl);
 
     live = {
       fx, match, me, isHome, opp: isHome ? match.away : match.home,
       support: fx.support != null ? fx.support : (g.clubs[fx.h] ? S.Fans.support(g, g.clubs[fx.h], att.fill) : 0.5),
+      statsBox, statsOpen: false,
       playing: true, timer: null, ov, head, courtWrap, logBox, ctrl,
       fill: att.fill, speed: g.settings.speed || 'fast',
     };
 
+    // цвета табло берём из формы клубов
+    const kitsHead = S.Identity.matchKits(g.clubs[fx.h], g.clubs[fx.a]);
+    live.meColor = isHome ? kitsHead.home.shirt : kitsHead.away.shirt;
+    live.oppColor = isHome ? kitsHead.away.shirt : kitsHead.home.shirt;
     drawHead();
     drawCourt();
+    drawStats();
     drawControls();
     pushLine('evt', 'Стартовый свисток. ' + Sn.teamName(g, fx.h) + ' принимает ' + Sn.teamName(g, fx.a) + '.', '');
     if (g.settings.sound) S.Audio.whistle(false);
@@ -92,6 +99,7 @@
     drawHead();
     drawCourt(r);
     maybeChant(r);
+    drawStats();
     if (r.setEnded && !r.matchEnded) {
       pushLine('evt', 'Сет ' + (r.record.set) + ' завершён: ' + live.match.log.setScores[live.match.log.setScores.length - 1].join(':') + '.', '');
       if (g.settings.sound) S.Audio.whistle(true);
@@ -119,22 +127,94 @@
     pushLine('evt', won ? 'Победа! ' + fx.result.score.join(':') : 'Поражение ' + fx.result.score.join(':'), '');
   }
 
-  /* ---------- шапка со счётом ---------- */
+  /* ---------- арена-табло ---------- */
+  /* Сегментные цифры как на настоящем табло: восемь сегментов, погашенные видно тускло. */
+  const SEG = {
+    a: { x: 3, y: 0.7, w: 6, h: 2.2 },
+    g: { x: 3, y: 8.9, w: 6, h: 2.2 },
+    d: { x: 3, y: 17.1, w: 6, h: 2.2 },
+    f: { x: 0.7, y: 2.2, w: 2.2, h: 7 },
+    b: { x: 9.1, y: 2.2, w: 2.2, h: 7 },
+    e: { x: 0.7, y: 10.8, w: 2.2, h: 7 },
+    c: { x: 9.1, y: 10.8, w: 2.2, h: 7 },
+  };
+  const DIGITS = {
+    0: 'abcdef', 1: 'bc', 2: 'abged', 3: 'abgcd', 4: 'fgbc', 5: 'afgcd',
+    6: 'afgedc', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg',
+  };
+
+  function segNumber(value, size, color) {
+    const str = String(Math.max(0, value | 0));
+    const w = 12, gap = 2.4, boxH = 20;
+    const g = svgEl('g', {});
+    str.split('').forEach((ch, i) => {
+      const on = DIGITS[ch] || '';
+      const dg = svgEl('g', { transform: 'translate(' + (i * (w + gap)) + ' 0)' });
+      Object.keys(SEG).forEach((k) => {
+        const r = SEG[k];
+        dg.appendChild(svgEl('rect', {
+          x: r.x, y: r.y, width: r.w, height: r.h, rx: 1.05,
+          fill: color, opacity: on.indexOf(k) >= 0 ? 1 : 0.11,
+        }));
+      });
+      g.appendChild(dg);
+    });
+    const totalW = str.length * w + (str.length - 1) * gap;
+    const svg = svgEl('svg', {
+      viewBox: '0 0 ' + totalW + ' ' + boxH,
+      width: (size * totalW / boxH).toFixed(1), height: size, class: 'seg',
+    });
+    svg.appendChild(g);
+    return svg;
+  }
+
   /* Клуб игрока всегда слева на табло и внизу на корте — так не путаешься, за кого играешь. */
   function drawHead() {
     const g = UI.game, m = live.match;
     const me = live.me, opp = live.opp;
+    const meColor = live.meColor || '#ff9f1c';
+    const oppColor = live.oppColor || '#2dd4bf';
     live.head.innerHTML = '';
-    live.head.appendChild(h('div', { class: 'm-score' },
-      h('div', { class: 'tm' },
-        h('div', { class: 'nm ellipsis', text: me.name }),
-        h('div', { class: 'tiny dim', text: (live.isHome ? 'дома' : 'в гостях') + ' · сеты ' + me.sets })),
-      h('div', { class: 'pts' + (m.serving === me ? ' serving' : ''), text: me.points }),
-      h('div', { class: 'tiny dim', text: 'сет ' + m.setNo }),
-      h('div', { class: 'pts' + (m.serving === opp ? ' serving' : ''), text: opp.points }),
-      h('div', { class: 'tm right' },
-        h('div', { class: 'nm ellipsis', text: opp.name }),
-        h('div', { class: 'tiny dim', text: 'сеты ' + opp.sets }))));
+
+    const side = (s, color, right) => h('div', { class: 'sb-team' + (right ? ' right' : '') },
+      h('div', { class: 'sb-name ellipsis', text: s.name }),
+      h('div', { class: 'sb-sets' },
+        ...[0, 1, 2].map((i) => h('i', { class: 'pip' + (s.sets > i ? ' on' : ''), style: s.sets > i ? 'background:' + color : '' })),
+        h('span', { class: 'tiny dim', style: 'margin-left:6px', text: 'сеты' })),
+      h('div', { class: 'sb-to' },
+        ...[0, 1].map((i) => h('i', { class: 'dot' + (s.timeouts > i ? ' on' : '') })),
+        h('span', { class: 'tiny dim', style: 'margin-left:5px', text: 'тайм-ауты' })));
+
+    const board = h('div', { class: 'scoreboard' },
+      side(me, meColor, false),
+      h('div', { class: 'sb-score' },
+        h('div', { class: 'sb-digits' },
+          h('span', { class: 'sb-num' + (m.serving === me ? ' serving' : '') }, segNumber(me.points, 30, meColor)),
+          h('span', { class: 'sb-colon' }, ':'),
+          h('span', { class: 'sb-num' + (m.serving === opp ? ' serving' : '') }, segNumber(opp.points, 30, oppColor))),
+        h('div', { class: 'tiny dim center', text: 'сет ' + m.setNo + (m.setNo === 5 ? ' · до 15' : '') })),
+      side(opp, oppColor, true));
+    live.head.appendChild(board);
+
+    // сыгранные сеты
+    if (m.log.setScores.length) {
+      const sets = h('div', { class: 'm-sets' });
+      m.log.setScores.forEach((sc, i) => {
+        const mine = live.isHome ? sc[0] : sc[1];
+        const theirs = live.isHome ? sc[1] : sc[0];
+        sets.appendChild(h('span', { class: 'st' + (mine > theirs ? ' won' : ''), text: (i + 1) + ': ' + mine + '–' + theirs }));
+      });
+      live.head.appendChild(sets);
+    }
+
+    // лента розыгрышей текущего сета: видно, где шли серии
+    const strip = h('div', { class: 'rally-strip' });
+    (m.setLog.rallies || []).slice(-60).forEach((r) => {
+      const mine = (r.winner === 'h') === live.isHome;
+      strip.appendChild(h('i', { class: mine ? 'us' : 'them' }));
+    });
+    live.head.appendChild(strip);
+
     if (live.isHome) {
       const sup = Math.round((live.support != null ? live.support : 0.5) * 100);
       live.head.appendChild(h('div', { class: 'support-meter' },
@@ -142,13 +222,28 @@
         h('div', { class: 'bar' }, h('i', { style: 'width:' + sup + '%' })),
         h('span', { class: 'tiny dim', text: sup + '%' })));
     }
-    const sets = h('div', { class: 'm-sets' });
-    m.log.setScores.forEach((sc, i) => {
-      const mine = live.isHome ? sc[0] : sc[1];
-      const theirs = live.isHome ? sc[1] : sc[0];
-      sets.appendChild(h('span', { class: 'st' + (mine > theirs ? ' won' : ''), text: (i + 1) + ': ' + mine + '–' + theirs }));
+  }
+
+  /** живая статистика шестёрки: обновляется прямо по ходу матча */
+  function drawStats() {
+    if (!live.statsBox) return;
+    const box = live.statsBox;
+    box.innerHTML = '';
+    if (!live.statsOpen) return;
+    const rows = live.me.onCourt().map((slot) => slot.player);
+    const head = h('div', { class: 'stat-row head' },
+      h('span', { class: 'grow', text: 'на площадке' }),
+      h('span', { text: 'очк' }), h('span', { text: 'атк' }), h('span', { text: 'блк' }), h('span', { text: 'эйс' }));
+    box.appendChild(head);
+    rows.sort((a, b) => (b.st.points || 0) - (a.st.points || 0)).forEach((p) => {
+      box.appendChild(h('div', { class: 'stat-row' },
+        h('span', { class: 'grow ellipsis' },
+          h('b', { class: 'role-' + p.role, text: ROLES[p.role].short + ' ' }), P.shortName(p)),
+        h('span', null, h('b', { text: p.st.points || 0 })),
+        h('span', { text: (p.st.kills || 0) + '/' + (p.st.attacks || 0) }),
+        h('span', { text: p.st.blocks || 0 }),
+        h('span', { text: p.st.aces || 0 })));
     });
-    live.head.appendChild(sets);
   }
 
   /* ---------- корт ---------- */
@@ -191,14 +286,14 @@
   const SKIN = ['#e8b48c', '#d79a6f', '#c98a5e', '#f0c9a6', '#a8704a'];
 
   /** маленький человечек-игрок: корпус в цветах команды, номер, руки внизу и поднятые */
-  function playerFigure(player, kit, dark, number, skin) {
+  function playerFigure(player, kit, ink, number, skin, shorts) {
     const g = svgEl('g', { class: 'figure' });
     g.appendChild(svgEl('ellipse', { cx: 0, cy: 0.6, rx: 5.2, ry: 1.9, fill: 'rgba(0,0,0,.32)' }));
     // ноги
     g.appendChild(svgEl('rect', { x: -2.7, y: -7.2, width: 2.1, height: 7.4, rx: 1, fill: skin }));
     g.appendChild(svgEl('rect', { x: 0.6, y: -7.2, width: 2.1, height: 7.4, rx: 1, fill: skin }));
     // шорты
-    g.appendChild(svgEl('rect', { x: -3.6, y: -10.2, width: 7.2, height: 3.8, rx: 1.2, fill: dark }));
+    g.appendChild(svgEl('rect', { x: -3.6, y: -10.2, width: 7.2, height: 3.8, rx: 1.2, fill: shorts || '#1b2233' }));
     // руки внизу
     const armsDown = svgEl('g', { class: 'arms-down' });
     armsDown.appendChild(svgEl('rect', { x: -5.9, y: -15.2, width: 1.9, height: 6.4, rx: 0.95, fill: skin }));
@@ -213,7 +308,7 @@
     g.appendChild(svgEl('rect', { x: -4.3, y: -16.4, width: 8.6, height: 6.8, rx: 2.2, fill: kit }));
     g.appendChild(svgEl('rect', { x: -4.3, y: -16.4, width: 8.6, height: 1.6, rx: 0.8, fill: 'rgba(255,255,255,.35)' }));
     g.appendChild(svgEl('text', {
-      x: 0, y: -11.4, 'text-anchor': 'middle', 'font-size': 4.2, 'font-weight': 800, fill: dark,
+      x: 0, y: -11.4, 'text-anchor': 'middle', 'font-size': 4.2, 'font-weight': 800, fill: ink,
     }, String(number)));
     // голова
     g.appendChild(svgEl('circle', { cx: 0, cy: -19.1, r: 2.75, fill: skin }));
@@ -239,6 +334,10 @@
     svg.appendChild(defs);
     const homeClub = game.clubs[fx.h];
     const away = Sn.team(game, fx.a);
+    const awayClub = game.clubs[fx.a];
+    // комплекты: если формы соперников похожи, гости переодеваются в запасную
+    const kits = S.Identity.matchKits(homeClub, awayClub);
+    const homeId = S.Identity.of(homeClub);
 
     // светодиодная сетка и свечение для рекламных панелей
     const pat = svgEl('pattern', { id: 'ledDots', width: 2, height: 2, patternUnits: 'userSpaceOnUse' });
@@ -259,8 +358,9 @@
     // ---- трибуны: ряды зрителей, плотность зависит от заполняемости зала ----
     const crowd = [];
     const fill = live ? live.fill : 0.6;
-    const homeColors = ['#ff9f1c', '#ffd166', '#e2e8f0', '#f59e0b', '#94a3b8'];
-    const awayColors = ['#2dd4bf', '#94a3b8', '#cbd5e1'];
+    // зал принадлежит хозяевам: трибуны в их цветах, в углу — гостевой сектор
+    const homeColors = [homeId.primary, homeId.secondary, '#e2e8f0', homeId.primary, '#94a3b8'];
+    const guestColors = awayClub ? [awayClub.identity.primary, awayClub.identity.secondary] : ['#94a3b8'];
     const bands = [
       { rowsY: [33, 22, 12], home: false, rect: [6, 2, 34] },
       { rowsY: [250, 261, 239], home: true, rect: [6, 232, 32] },
@@ -274,10 +374,9 @@
       band.rowsY.forEach((rowY, r) => {
         for (let i = 0; i < 27; i++) {
           if (rng.next() > 0.30 + fill * 0.70) continue;
-          // на выезде почти весь зал — за хозяев, а в углу сидит гостевой сектор
-          const guestSector = !live.isHome && band.home && i < 5;
-          const ourSide = live.isHome ? band.home : guestSector;
-          const palette = ourSide ? homeColors : awayColors;
+          // гостевой сектор — угол нижнего яруса
+          const guestSector = band.home && i < 4;
+          const palette = guestSector ? guestColors : homeColors;
           const use = svgEl('use', {
             href: '#fan', x: 15 + i * 11.6 + (r % 2) * 5.2, y: rowY,
             class: 'fan', width: 8, height: 9,
@@ -360,13 +459,21 @@
     const dots = {};
     const numbers = {};
     let nHome = 1, nAway = 1;
+    // заливка маек: рисунок формы (полосы, диагональ, обруч) готовится один раз
+    const topKit = live && live.isHome ? kits.away : kits.home;
+    const botKit = live && live.isHome ? kits.home : kits.away;
+    const topFill = S.Crest.kitFill(defs, topKit, 'kitTop', 0.42);
+    const botFill = S.Crest.kitFill(defs, botKit, 'kitBot', 0.42);
+    const liberoTop = S.Crest.kitFill(defs, { shirt: '#fde047', trim: topKit.trim, pattern: 'solid' }, 'kitLibT');
+    const liberoBot = S.Crest.kitFill(defs, { shirt: '#fde047', trim: botKit.trim, pattern: 'solid' }, 'kitLibB');
     const mkFigure = (player, top) => {
-      const kit = top ? '#2dd4bf' : '#ff9f1c';
-      const dark = top ? '#0b3b37' : '#3a2404';
+      const kitObj = top ? topKit : botKit;
+      const fill = player.role === 'L' ? (top ? liberoTop : liberoBot) : (top ? topFill : botFill);
+      const ink = player.role === 'L' ? '#3b2f05' : S.Identity.inkOn(kitObj.shirt);
       const num = player.role === 'L' ? (top ? 17 : 18) : (top ? nAway++ : nHome++);
       numbers[player.id] = num;
       const skin = SKIN[Math.floor(rng.next() * SKIN.length)];
-      const g = playerFigure(player, player.role === 'L' ? '#fde047' : kit, dark, num, skin);
+      const g = playerFigure(player, fill, ink, num, skin, kitObj.trim);
       g.appendChild(svgEl('text', {
         x: 0, y: 8.4, 'text-anchor': 'middle', 'font-size': 6.4, fill: '#eaf0ff',
         stroke: 'rgba(6,10,20,.85)', 'stroke-width': 2, 'paint-order': 'stroke fill',
@@ -676,6 +783,10 @@
       },
     }, 'Просмотр ' + me.challenges));
     live.ctrl.appendChild(h('button', { class: 'btn', onclick: () => subModal() }, 'Замена ' + me.subsLeft));
+    live.ctrl.appendChild(h('button', {
+      class: 'btn' + (live.statsOpen ? ' primary' : ''), style: 'flex:0 0 46px',
+      title: 'Статистика', onclick: () => { live.statsOpen = !live.statsOpen; drawStats(); drawControls(); },
+    }, '№'));
     const speeds = h('div', { class: 'speeds', style: 'flex:1 1 100%;display:flex;gap:6px' });
     speeds.appendChild(h('button', {
       class: 'btn' + (live.playing ? '' : ' primary'),

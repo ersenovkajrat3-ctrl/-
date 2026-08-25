@@ -113,7 +113,7 @@
       h('h2', { class: 'cer-title', text: cer.title }),
       h('div', { class: 'cer-sub', text: cer.subtitle + ' · сезон ' + (cer.season || game.seasonLabel) }),
       h('div', { class: 'cer-club' },
-        h('span', { class: 'crest', text: UI.crestLetter(club.name) }),
+        UI.crest(club, 48),
         h('span', null,
           h('div', { style: 'font-weight:700', text: club.name }),
           h('div', { class: 'tiny dim', text: 'трибуны: ' + S.Fans.moodLabel(fans.mood) })))

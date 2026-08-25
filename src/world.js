@@ -193,6 +193,9 @@
       club.finance.balance = Math.round(wageBill * rng.range(3.5, 7));
     });
 
+    // формы и эмблемы: внутри дивизиона комплекты не повторяются
+    S.Identity.assign(rng, Object.values(game.clubs));
+
     // стартовые спонсорские контракты у всех клубов, иначе лига уходит в минус с первого месяца
     const takenBrands = new Set();
     Object.values(game.clubs).forEach((club) => {
