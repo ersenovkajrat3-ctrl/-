@@ -186,6 +186,8 @@
     const ratio = club.ticketPrice / expected;
     if (ratio > 1.15) f.mood = U.clamp(f.mood - (ratio - 1.15) * 1.6, 3, 100);
     else if (ratio < 0.85) f.mood = U.clamp(f.mood + 0.25, 3, 100);
+    // трибуны читают прессу: разгромная колонка портит фон, доброжелательная — держит
+    if (S.Press && club.isPlayer) f.mood = U.clamp(f.mood + S.Press.mood(game, club.id) * 0.6, 3, 100);
   }
 
   /* ---------- события клуба ---------- */

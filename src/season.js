@@ -341,6 +341,7 @@
       const c = game.clubs[cup.winner];
       c.trophies.push({ season: game.seasonLabel, name: 'Кубок страны' });
       S.Fans.onTrophy(game, c);
+      Ec.merchSpike(game, c, 0.35);
       if (c.isPlayer) queueCeremony(game, { type: 'cup', title: 'Кубок страны', subtitle: 'Финал выигран', clubId: c.id });
       S.Feed.event(game, c, 'trophy', { trophy: 'Кубок страны', club: c.name }, 1.6);
       if (c.isPlayer) {
@@ -469,6 +470,7 @@
         Ec.ledger(club, 'prize', 'Призовые ' + cup.short + ': победа', Ec.euroPrize(eu.cupId, 'win'));
         club.trophies.push({ season: game.seasonLabel, name: cup.name });
         S.Fans.onTrophy(game, club);
+        Ec.merchSpike(game, club, 0.55);
         S.Fans.unlock(game, club, 'euro');
         queueCeremony(game, { type: 'euro', title: cup.name, subtitle: '«Финал четырёх» выигран', clubId: club.id });
         S.Feed.event(game, club, 'trophy', { trophy: cup.name, club: club.name }, 2);

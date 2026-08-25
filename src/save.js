@@ -20,6 +20,7 @@
     });
     clone.results = (game.results || []).slice(0, 150);
     clone.feed = (game.feed || []).slice(0, 60);
+    clone.press = (game.press || []).slice(0, 40);
     // st — черновая статистика текущего матча, её незачем хранить
     const players = {};
     for (const id in game.players) {

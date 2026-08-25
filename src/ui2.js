@@ -360,10 +360,11 @@
     });
   };
 
-  /* ================= ЛЕНТА ================= */
-  UI.screenFeed = function (scr) {
-    const g = UI.game;
-    const club = g.clubs[g.playerClubId];
+  /* ================= ЛЕНТА И СМИ ================= */
+  UI.feedTab = UI.feedTab || 'social';
+
+  /** соцсети: «Подача» */
+  function feedColumn(scr, g, club) {
     scr.appendChild(h('div', { class: 'card tight' },
       h('div', { class: 'row between mb' },
         h('div', null, h('b', { text: 'Подача' }), h('div', { class: 'tiny dim', text: 'лента клубов, болельщиков и инсайдеров' })),
@@ -394,6 +395,75 @@
             h('span', { class: 'dim', text: 'неделя ' + post.week })))));
     });
     scr.appendChild(box);
+  }
+
+  /** пресса: газеты и интернет-порталы */
+  function pressColumn(scr, g, club) {
+    const Pr = S.Press;
+    const list = (g.press || []).filter((a) => a.clubId === club.id);
+    const outlets = Pr.outletsFor(club);
+    const mood = Pr.mood(g, club.id);
+    const avg = Pr.avgMark(g, club.id);
+    const moodLabel = mood > 0.35 ? 'пресса на вашей стороне'
+      : mood > 0.1 ? 'тон скорее доброжелательный'
+      : mood > -0.1 ? 'взвешенный тон'
+      : mood > -0.35 ? 'пресса настроена критично'
+      : 'вас разбирают по косточкам';
+
+    scr.appendChild(h('div', { class: 'card tight' },
+      h('div', { class: 'row between mb' },
+        h('div', null, h('b', { text: 'СМИ' }), h('div', { class: 'tiny dim', text: 'газеты и интернет-порталы о клубе' })),
+        avg != null ? h('span', { class: 'pill ' + (avg >= 6.5 ? 'good' : avg >= 5 ? '' : 'bad'), text: 'оценка ' + avg.toFixed(1) }) : null),
+      h('div', { class: 'press-bar' },
+        mood >= 0 ? h('i', { class: 'pos', style: 'width:' + (mood * 50).toFixed(1) + '%' })
+          : h('i', { class: 'neg', style: 'width:' + (-mood * 50).toFixed(1) + '%' })),
+      h('div', { class: 'tiny dim mt', text: moodLabel + ' · публикаций за сезон: ' + list.length })));
+
+    const obox = h('div', { class: 'card tight' },
+      h('div', { class: 'small mb' }, 'Кто пишет о клубе'));
+    outlets.forEach((o) => obox.appendChild(h('div', { class: 'outlet-row' },
+      h('div', { class: 'dot ' + o.kind, text: o.short }),
+      h('div', { class: 'grow' },
+        h('div', { class: 'small', text: o.name }),
+        h('div', { class: 'tiny dim', text: Pr.KIND_LABEL[o.kind] + ' · ' + SLANT[o.slant] })),
+      h('span', { class: 'tiny dim', text: U.num(o.reach) + ' тыс.' }))));
+    const hidden = S.Press.OUTLETS.length - outlets.length;
+    if (hidden > 0) obox.appendChild(h('div', { class: 'tiny muted mt', text: 'Ещё ' + hidden + ' ' + U.plural(hidden, ['издание', 'издания', 'изданий']) + ' обратят на клуб внимание в лигах повыше.' }));
+    scr.appendChild(obox);
+
+    if (!list.length) { scr.appendChild(h('div', { class: 'empty', text: 'Пресса пока молчит — сыграйте матч.' })); return; }
+    const box = h('div', { class: 'card', style: 'padding:0' });
+    list.slice(0, 40).forEach((a) => {
+      const o = Pr.outlet(a.outlet) || { name: 'СМИ', kind: 'portal', short: '??' };
+      box.appendChild(h('div', { class: 'article ' + o.kind },
+        h('div', { class: 'meta' },
+          h('span', { class: 'brand', text: o.name }),
+          h('span', { class: 'kind', text: Pr.KIND_LABEL[o.kind] }),
+          h('span', { class: 'grow' }),
+          a.mark != null ? h('span', { class: 'mark ' + (a.mark >= 6.5 ? 'good' : a.mark < 5 ? 'bad' : ''), text: a.mark.toFixed(1) }) : null),
+        h('div', { class: 'head', text: a.headline }),
+        h('div', { class: 'lede', text: a.text }),
+        a.author ? h('div', { class: 'by', text: 'колонка · ' + a.author }) : null,
+        h('div', { class: 'foot' },
+          h('span', { text: 'неделя ' + a.week }),
+          h('span', { text: '👁 ' + U.num(Math.round(a.reads / 1000)) + ' тыс.' }))));
+    });
+    scr.appendChild(box);
+  }
+
+  const SLANT = {
+    loyal: 'лояльная линия', neutral: 'взвешенная подача', analytic: 'разборы и цифры',
+    critic: 'критический тон', tabloid: 'громкие заголовки',
+  };
+
+  UI.screenFeed = function (scr) {
+    const g = UI.game;
+    const club = g.clubs[g.playerClubId];
+    scr.appendChild(h('div', { class: 'seg mb' },
+      h('button', { class: UI.feedTab === 'social' ? 'on' : '', onclick: () => { UI.feedTab = 'social'; UI.render(); } }, 'Соцсети'),
+      h('button', { class: UI.feedTab === 'press' ? 'on' : '', onclick: () => { UI.feedTab = 'press'; UI.render(); } }, 'СМИ')));
+    if (UI.feedTab === 'press') pressColumn(scr, g, club);
+    else feedColumn(scr, g, club);
   };
 
   /* ================= АРЕНА ================= */
@@ -447,6 +517,39 @@
           h('div', { class: 'row between small mb' }, h('b', { text: w.name }), h('span', { class: 'muted', text: w.monthsLeft + ' мес.' })),
           h('div', { class: 'progress' }, h('i', { style: 'width:' + Math.round(100 - (w.monthsLeft / 4) * 100) + '%' }))));
       });
+    }
+
+    if (club.arena.service) {
+      scr.appendChild(h('div', { class: 'section-title', text: 'Еда и напитки' }));
+      const seg = h('div', { class: 'seg' });
+      Ec.FOOD_TIERS.forEach((t) => {
+        seg.appendChild(h('button', {
+          class: (club.foodPrice != null ? club.foodPrice : 1) === t.id ? 'on' : '',
+          onclick: () => { club.foodPrice = t.id; UI.render(); },
+        }, t.name));
+      });
+      const tier = Ec.foodTier(club);
+      scr.appendChild(h('div', { class: 'card' }, seg,
+        h('div', { class: 'tiny dim mt', text: tier.desc }),
+        h('div', { class: 'row between small mt' },
+          h('span', { class: 'muted', text: 'Буфеты за домашний матч' }),
+          h('b', { class: 'good', text: '+' + U.money(Ec.matchdayService(g, club, sum.attendance.count)) })),
+        tier.mood ? h('div', { class: 'row between tiny' },
+          h('span', { class: 'dim', text: 'Влияние на настроение трибун' }),
+          h('b', { class: tier.mood > 0 ? 'good' : 'bad', text: (tier.mood > 0 ? '+' : '') + tier.mood + ' за матч' })) : null));
+    }
+
+    if (club.arena.shop || club.arena.service) {
+      scr.appendChild(h('div', { class: 'card tight' },
+        h('div', { class: 'row between small' },
+          h('span', { class: 'muted', text: 'Магазин и онлайн-витрина' }),
+          h('b', { class: 'good', text: '+' + U.money(Ec.merchMonthly(g, club)) + '/мес' })),
+        h('div', { class: 'row between small' },
+          h('span', { class: 'muted', text: 'Атрибутика и буфеты в день матча' }),
+          h('b', { class: 'good', text: '+' + U.money(Ec.matchdayMerch(g, club, sum.attendance.count) + Ec.matchdayService(g, club, sum.attendance.count)) })),
+        club.merchBoost > 0.05
+          ? h('div', { class: 'tiny accent mt', text: 'Ажиотаж после успеха: продажи выше обычного на ' + Math.round(club.merchBoost * 100) + '%' })
+          : h('div', { class: 'tiny dim mt', text: 'Продажи растут от медийности, настроения трибун и звёзд в составе.' })));
     }
 
     scr.appendChild(h('div', { class: 'section-title', text: 'Капитальные вложения' }));
@@ -548,9 +651,23 @@
 
     scr.appendChild(h('div', { class: 'card' },
       line('Спонсоры', sum.sponsors), line('Взнос учредителя', sum.support),
-      line('Билеты за домашний матч', sum.perMatch),
+      line('Мерч: магазин и онлайн', sum.merch),
+      line('Матчдэй за домашний матч', sum.perMatch),
       line('Зарплаты', -sum.wages), line('Инфраструктура', -sum.upkeep),
       club.finance.loanMonths > 0 ? line('Кредит (' + club.finance.loanMonths + ' мес.)', -club.finance.loanMonthly) : null));
+
+    // из чего складывается день матча
+    const md = sum.matchday;
+    scr.appendChild(h('div', { class: 'card' },
+      h('div', { class: 'row between mb' }, h('b', { text: 'День матча' }),
+        h('span', { class: 'tiny dim', text: U.num(sum.attendance.count) + ' зрителей' })),
+      mdRow('Билеты', md.tickets, sum.perMatch),
+      mdRow('VIP-ложи', md.boxes, sum.perMatch),
+      mdRow('Буфеты и сервис', md.food, sum.perMatch),
+      mdRow('Атрибутика на арене', md.merch, sum.perMatch),
+      !club.arena.service || !club.arena.shop
+        ? h('div', { class: 'tiny dim mt', text: 'Кафе и клубный магазин строятся на экране «Арена» — это отдельные статьи дохода, а не просто украшение.' })
+        : null));
 
     if (club.finance.debt > 0) {
       scr.appendChild(h('div', { class: 'card tight row between' },
@@ -566,6 +683,16 @@
         h('span', { class: 'small grow ellipsis', text: l.label }),
         h('b', { class: l.amount >= 0 ? 'good' : 'bad', text: (l.amount >= 0 ? '+' : '') + U.money(l.amount) })));
     });
+    /** строка дня матча: сумма плюс доля от всей выручки матча */
+    function mdRow(label, v, total) {
+      const share = total > 0 ? Math.round((v / total) * 100) : 0;
+      return h('div', { class: 'row between small', style: 'padding:5px 0;border-bottom:1px solid var(--line)' },
+        h('span', { class: v > 0 ? 'muted' : 'dim', text: label }),
+        h('span', { class: 'row', style: 'gap:8px' },
+          h('span', { class: 'tiny dim', text: v > 0 ? share + '%' : '—' }),
+          h('b', { class: v > 0 ? '' : 'dim', text: U.money(v) })));
+    }
+
     function line(label, v) {
       return h('div', { class: 'row between small', style: 'padding:5px 0;border-bottom:1px solid var(--line)' },
         h('span', { class: 'muted', text: label }),

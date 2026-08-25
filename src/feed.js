@@ -153,6 +153,8 @@
       });
       if (a === 'club') delta += eng.likes / 100 * (opts.positive === false ? -0.4 : 1) * (tone === 'bold' && opts.positive === false ? 1.6 : 1);
     }
+    // те же события разбирает пресса — но своей колонкой и своим тоном
+    if (S.Press) S.Press.cover(game, club, type, vars, importance, opts);
     // индекс медийности двигают сами события: тон выбирает размах качелей
     const toneSwing = tone === 'provoc' ? 1.6 : tone === 'bold' ? 1.25 : 1;
     const nudge = (opts.positive === false ? -1.15 : 1) * importance * toneSwing;

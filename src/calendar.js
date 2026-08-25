@@ -71,8 +71,11 @@
       const scoreStr = (fx.h === pid ? res.score : [res.score[1], res.score[0]]).join(':');
       const streak = club.form.slice().reverse().findIndex((f) => f !== (win ? 'w' : 'l'));
       const importance = fx.type === 'league' ? (fx.stageKey ? 1.5 : 0.9) : 1.3;
+      const mvp = res.mvp;
       S.Feed.event(game, club, win ? 'win' : 'loss',
-        { score: scoreStr, opp: oppName, club: club.name, streak: (streak < 0 ? club.form.length : streak) },
+        { score: scoreStr, opp: oppName, club: club.name, streak: (streak < 0 ? club.form.length : streak),
+          mvp: mvp ? mvp.name : 'связующий', pts: mvp ? mvp.points : 0,
+          sets: fx.h === pid ? res.score : [res.score[1], res.score[0]] },
         importance, { positive: win });
     }
   }
@@ -146,7 +149,10 @@
     if (game.week === 22) S.Transfers.closeWindow(game);
     S.Transfers.aiTick(game);
     Sn.weeklyRecovery(game);
-    if (game.playerClubId) S.Feed.idleChatter(game, game.clubs[game.playerClubId]);
+    if (game.playerClubId) {
+      S.Feed.idleChatter(game, game.clubs[game.playerClubId]);
+      if (S.Press) S.Press.weekly(game, game.clubs[game.playerClubId]);
+    }
     if (game.week >= Sn.SEASON_END_WEEK) { game.phase = 'offseason'; }
     return events;
   }
@@ -301,6 +307,7 @@
         const champ = game.clubs[st.champion];
         champ.trophies.push({ season: game.seasonLabel, name: d.name });
         S.Fans.onTrophy(game, champ);
+        Ec.merchSpike(game, champ, 0.5);      // за чемпионской формой выстраивается очередь
         if (champ.isPlayer) {
           Sn.queueCeremony(game, {
             type: 'league', title: d.name, subtitle: 'Чемпионский титул', clubId: champ.id,
@@ -388,6 +395,7 @@
       r.promoted.forEach((id) => {
         const c = game.clubs[id];
         S.Fans.onPromotion(game, c);
+        Ec.merchSpike(game, c, 0.3);
         if (c.isPlayer) {
           Sn.queueCeremony(game, {
             type: 'promotion', title: DIVISIONS[c.division].name, subtitle: 'Клуб поднимается дивизионом выше', clubId: c.id,

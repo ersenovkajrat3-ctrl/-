@@ -44,7 +44,7 @@
 
   /* ---------- клуб ---------- */
   function makeArena(capacity) {
-    return { baseCapacity: capacity, stands: 0, vip: 0, media: 0, base: 0, works: [] };
+    return { baseCapacity: capacity, stands: 0, vip: 0, media: 0, base: 0, service: 0, shop: 0, works: [] };
   }
   function arenaCapacity(club) { return club.arena.baseCapacity + club.arena.stands * 800; }
   function arenaHasCevLicense(club) { return club.arena.media >= 2 && arenaCapacity(club) >= 2000; }
@@ -58,6 +58,7 @@
       reputation: Math.round(strength),
       arena: makeArena(capacity),
       ticketPrice: Math.round(300 + strength * 12),
+      foodPrice: 1,        // 0 — эконом, 1 — обычные цены, 2 — премиальные
       finance: { balance: 0, debt: 0, loanMonthly: 0, loanMonths: 0, sponsors: [], seasonIncome: 0, seasonSpend: 0, ledger: [] },
       squad: [], lineup: [], liberoId: null, tactics: null,
       mediaIndex: U.clamp(Math.round(strength * 0.7 + rng.range(-6, 6)), 5, 95),
@@ -158,6 +159,7 @@
       euroClubs: [],
       playerClubId: null,
       feed: [],
+      press: [],
       inbox: [],
       offers: { sponsors: [], transfers: [] },
       market: [],

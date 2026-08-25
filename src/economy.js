@@ -41,15 +41,66 @@
     return { count, fill: count / cap, cap, members: fans.members };
   }
 
+  /* ---------- мерч ---------- */
+  /** Насколько бойко расходится атрибутика: медийность, настроение трибун, звёзды в составе.
+      Всплеск после трофея или подписания звезды живёт несколько месяцев и затухает. */
+  function merchAppeal(game, club) {
+    const fans = club.fans || { mood: 55, members: 0 };
+    const squad = (club.squad || []).map((id) => game.players[id]).filter(Boolean);
+    const star = squad.length ? Math.max.apply(null, squad.map((p) => P.overall(p))) : 60;
+    const starPull = U.clamp((star - 70) / 30, 0, 1);            // именная форма звезды продаётся сама
+    const boost = 1 + (club.merchBoost || 0);
+    return (0.45 + club.mediaIndex / 140 + fans.mood / 220 + starPull * 0.5) * boost;
+  }
+
+  /** Продажи в день матча: люди на трибунах покупают шарфы и футболки прямо на арене. */
+  function matchdayMerch(game, club, attendanceCount) {
+    const perFan = 18 + club.arena.shop * 26;                     // средний чек на зрителя: шарф берёт далеко не каждый
+    return Math.round(attendanceCount * perFan * merchAppeal(game, club));
+  }
+
+  /** Ежемесячные продажи вне матчей: город, онлайн-витрина, абонементщики. */
+  function merchMonthly(game, club) {
+    if (!club.arena.shop) return 0;
+    const fans = club.fans || { members: 0 };
+    const base = (fans.members * 70 + S.World.arenaCapacity(club) * 30) * club.arena.shop;
+    return Math.round(base * merchAppeal(game, club) * (0.4 + 0.6 * DIVISIONS[club.division].ticket));
+  }
+
+  /** Еда и напитки: три ценовые политики — дешевле берут чаще, дороже платят больше. */
+  const FOOD_TIERS = [
+    { id: 0, name: 'Эконом', desc: 'Кофе и выпечка по цене ниже рыночной: покупают почти все, но чек маленький.', rev: 0.72, mood: 0.35 },
+    { id: 1, name: 'Обычные', desc: 'Стандартные цены буфета — привычный баланс выручки и настроения.', rev: 1, mood: 0 },
+    { id: 2, name: 'Премиум', desc: 'Дорогое меню и авторский кофе: чек выше, но на трибунах ворчат.', rev: 1.45, mood: -0.5 },
+  ];
+  function foodTier(club) { return FOOD_TIERS[club.foodPrice != null ? club.foodPrice : 1] || FOOD_TIERS[1]; }
+
+  /** Буфеты и сервис: чем выше уровень и цены, тем больше оставляют на трибунах. */
+  function matchdayService(game, club, attendanceCount) {
+    if (!club.arena.service) return 0;
+    const perFan = 45 * club.arena.service + club.arena.vip * 18;
+    return Math.round(attendanceCount * perFan * foodTier(club).rev);
+  }
+
+  /** всплеск продаж атрибутики: трофей, повышение, громкий трансфер */
+  function merchSpike(game, club, amount) {
+    club.merchBoost = U.clamp((club.merchBoost || 0) + amount, 0, 1.4);
+  }
+
   function matchdayIncome(game, club, opponent) {
     const att = attendance(game, club, opponent);
-    const tickets = att.count * club.ticketPrice;
-    const vip = club.arena.vip * 45 * club.ticketPrice * 4; // ложи продаются пакетами
-    const total = Math.round(tickets + vip);
-    ledger(club, 'tickets', 'Домашний матч: билеты' + (club.arena.vip ? ' и ложи' : ''), total);
-    // полный зал сам по себе поднимает настроение, пустой — гасит
+    const tickets = Math.round(att.count * club.ticketPrice);
+    const boxes = Math.round(club.arena.vip * 45 * club.ticketPrice * 4);   // ложи продаются пакетами
+    const food = matchdayService(game, club, att.count);
+    const merch = matchdayMerch(game, club, att.count);
+    const total = tickets + boxes + food + merch;
+    ledger(club, 'tickets', 'Матчдэй: билеты' + (boxes ? ' и ложи' : ''), tickets + boxes);
+    if (food) ledger(club, 'service', 'Матчдэй: буфеты и сервис', food);
+    if (merch) ledger(club, 'merch', 'Матчдэй: атрибутика', merch);
+    // полный зал сам по себе поднимает настроение, пустой — гасит; цены в буфете тоже слышно
     S.Fans.shift(game, club, att.fill > 0.82 ? 0.5 : att.fill < 0.45 ? -0.4 : 0);
-    return { total, attendance: att };
+    if (club.arena.service) S.Fans.shift(game, club, foodTier(club).mood);
+    return { total, attendance: att, breakdown: { tickets, boxes, food, merch } };
   }
 
   /* ---------- месячный тик (каждые 4 недели) ---------- */
@@ -81,6 +132,10 @@
     out.push({ label: 'Зарплаты', amount: -wages });
     const sp = sponsorIncome(club);
     if (sp > 0) { ledger(club, 'sponsor', 'Спонсорские выплаты', sp); out.push({ label: 'Спонсоры', amount: sp }); }
+    const merch = merchMonthly(game, club);
+    if (merch > 0) { ledger(club, 'merch', 'Мерч: магазин и онлайн', merch); out.push({ label: 'Мерч', amount: merch }); }
+    // интерес к атрибутике после успеха постепенно спадает
+    if (club.merchBoost) club.merchBoost = club.merchBoost > 0.04 ? club.merchBoost * 0.78 : 0;
     if (club.finance.loanMonths > 0) {
       const pay = club.finance.loanMonthly;
       ledger(club, 'loan', 'Платёж по кредиту', -pay);
@@ -90,7 +145,7 @@
       if (club.finance.loanMonths === 0) club.finance.loanMonthly = 0;
     }
     // содержание арены
-    const upkeep = Math.round(S.World.arenaCapacity(club) * 220 + club.arena.vip * 180000 + club.arena.media * 240000 + club.arena.base * 300000);
+    const upkeep = Math.round(S.World.arenaCapacity(club) * 220 + club.arena.vip * 180000 + club.arena.media * 240000 + club.arena.base * 300000 + S.World.arenaCapacity(club) * (club.arena.service * 12 + club.arena.shop * 10));
     ledger(club, 'upkeep', 'Содержание арены и базы', -upkeep);
     out.push({ label: 'Инфраструктура', amount: -upkeep });
     if (club.transferFreeze > 0) club.transferFreeze--;
@@ -132,11 +187,13 @@
   }
   function restoreName(club) { club.name = club.baseName; }
 
-  function sponsorValue(club, type) {
+  function sponsorValue(club, type, game) {
     const div = DIVISIONS[club.division];
     const mediaFactor = 0.55 + club.mediaIndex / 130;
     const repFactor = 0.7 + club.reputation / 200;
-    const base = 22e6 * div.wageIndex * mediaFactor * repFactor;
+    // тон прессы виден в переговорах: разгромные заголовки сбивают цену контракта
+    const pressFactor = game && S.Press ? 1 + S.Press.mood(game, club.id) * 0.1 : 1;
+    const base = 22e6 * div.wageIndex * mediaFactor * repFactor * pressFactor;
     const mult = { title: 0.22, kit: 0.09, local: 0.035 }[type];
     return Math.round(base * mult / 1e5) * 1e5;
   }
@@ -162,7 +219,7 @@
       if (!free.length) continue;
       const brand = rng.pick(free);
       taken.add(brand);
-      const monthly = Math.round(sponsorValue(club, type) * rng.range(0.85, 1.2) / 1e5) * 1e5;
+      const monthly = Math.round(sponsorValue(club, type, game) * rng.range(0.85, 1.2) / 1e5) * 1e5;
       offers.push({
         id: 'so' + U.id(), type, brand, monthly,
         years: type === 'local' ? 1 : rng.int(1, 3),
@@ -253,18 +310,26 @@
   function summary(game, club) {
     const wages = wageBill(game, club);
     const sponsors = sponsorIncome(club);
-    const upkeep = Math.round(S.World.arenaCapacity(club) * 220 + club.arena.vip * 180000 + club.arena.media * 240000 + club.arena.base * 300000);
+    const upkeep = Math.round(S.World.arenaCapacity(club) * 220 + club.arena.vip * 180000 + club.arena.media * 240000 + club.arena.base * 300000 + S.World.arenaCapacity(club) * (club.arena.service * 12 + club.arena.shop * 10));
     const att = attendance(game, club, null);
-    const perMatch = att.count * club.ticketPrice + club.arena.vip * 45 * club.ticketPrice * 4;
+    const tickets = Math.round(att.count * club.ticketPrice);
+    const boxes = Math.round(club.arena.vip * 45 * club.ticketPrice * 4);
+    const food = matchdayService(game, club, att.count);
+    const dayMerch = matchdayMerch(game, club, att.count);
+    const perMatch = tickets + boxes + food + dayMerch;
+    const merch = merchMonthly(game, club);
     const homeMatchesPerMonth = 2;
     const support = founderSupport(club);
-    const monthly = sponsors + support + perMatch * homeMatchesPerMonth - wages - upkeep - (club.finance.loanMonths > 0 ? club.finance.loanMonthly : 0);
-    return { wages, sponsors, support, upkeep, perMatch, monthly, attendance: att, debt: club.finance.debt };
+    const monthly = sponsors + support + merch + perMatch * homeMatchesPerMonth - wages - upkeep - (club.finance.loanMonths > 0 ? club.finance.loanMonthly : 0);
+    return {
+      wages, sponsors, support, upkeep, perMatch, merch, monthly, attendance: att, debt: club.finance.debt,
+      matchday: { tickets, boxes, food, merch: dayMerch },
+    };
   }
 
   S.Economy = {
     ledger, wageBill, sponsorIncome, attendance, matchdayIncome, monthlyTick,
-    prizeMoney, euroPrize, founderSupport, usedBrands, generateSponsorOffers, signSponsor, breakSponsor, sponsorValue,
+    prizeMoney, euroPrize, founderSupport, usedBrands, merchMonthly, matchdayMerch, matchdayService, merchAppeal, merchSpike, FOOD_TIERS, foodTier, generateSponsorOffers, signSponsor, breakSponsor, sponsorValue,
     upgradeCost, startUpgrade, takeLoan, loanLimit, summary, renameFor, restoreName, PRIZE_BASE, TIER_COST,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -147,6 +147,8 @@
     game.market = game.market.filter((m) => m.playerId !== playerId);
     W.autoLineupAvailable(game, club);
     S.Fans.onTransferIn(game, club, player);
+    // именная форма новой звезды сама себя продаёт
+    if (P.overall(player) >= 78) Ec.merchSpike(game, club, (P.overall(player) - 74) / 60);
     if (club.isPlayer) {
       S.Feed.event(game, club, 'transferIn', {
         player: P.fullName(player), role: S.ROLES[player.role].full, club: club.name, fee: fee ? U.money(fee) : 'свободный агент',

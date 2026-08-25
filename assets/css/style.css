@@ -381,6 +381,40 @@ table.tbl td.name { max-width: 170px; }
 .post .txt { font-size: 14px; margin: 3px 0 7px; }
 .post .react { display: flex; gap: 16px; font-size: 11.5px; color: var(--dim); }
 
+/* ---------- СМИ: газеты и интернет-порталы ---------- */
+.article { padding: 12px; border-bottom: 1px solid var(--line); }
+.article .meta { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.article .brand { font-size: 12.5px; font-weight: 800; letter-spacing: .01em; }
+.article.paper .brand { font-family: Georgia, 'Times New Roman', serif; }
+.article .kind {
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim);
+  border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px;
+}
+.article .head { font-size: 15px; font-weight: 800; line-height: 1.22; }
+.article.paper .head { font-family: Georgia, 'Times New Roman', serif; letter-spacing: -.01em; }
+.article .lede { font-size: 13.5px; color: var(--muted); margin-top: 4px; line-height: 1.42; }
+.article .by { font-size: 11.5px; color: var(--dim); font-style: italic; margin-top: 6px; }
+.article .foot { display: flex; gap: 14px; font-size: 11.5px; color: var(--dim); margin-top: 7px; }
+.article .mark {
+  flex: 0 0 auto; min-width: 34px; text-align: center; font-weight: 800; font-size: 13px;
+  border-radius: 8px; padding: 3px 6px; background: var(--panel2); border: 1px solid var(--line);
+}
+.article .mark.good { color: var(--teal); }
+.article .mark.bad { color: var(--bad); }
+.press-bar { height: 6px; border-radius: 3px; background: var(--panel2); overflow: hidden; position: relative; }
+.press-bar i { position: absolute; top: 0; bottom: 0; display: block; }
+.press-bar i.pos { left: 50%; background: var(--teal); }
+.press-bar i.neg { right: 50%; background: var(--bad); }
+.press-bar::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--line); }
+.outlet-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.outlet-row:last-child { border-bottom: 0; }
+.outlet-row .dot {
+  width: 26px; height: 26px; flex: 0 0 26px; border-radius: 8px; display: grid; place-items: center;
+  font-size: 10.5px; font-weight: 800; background: var(--panel2); border: 1px solid var(--line);
+}
+.outlet-row .dot.portal { color: var(--teal); }
+.outlet-row .dot.paper { color: var(--accent); }
+
 /* ---------- старт ---------- */
 .hero { text-align: center; padding: 32px 16px 20px; }
 .hero .logo {

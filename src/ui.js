@@ -862,8 +862,12 @@
         h('div', { class: 'section-title', style: 'margin-left:0', text: 'Монограмма' }), mono,
         h('button', {
           class: 'btn primary full mt', onclick: () => {
+            const changed = draft.primary !== id.primary || draft.pattern !== id.pattern;
             club.identity = draft;
-            m.close(); UI.render(); toast('Форма обновлена');
+            // новая форма — новая волна продаж в магазине
+            if (changed) S.Economy.merchSpike(g, club, 0.25);
+            m.close(); UI.render();
+            toast(changed ? 'Новая форма в продаже' : 'Форма обновлена');
           },
         }, 'Сохранить'),
       ];
