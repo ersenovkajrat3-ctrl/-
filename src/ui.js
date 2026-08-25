@@ -282,6 +282,10 @@
           h('div', { class: 'team' },
             h('div', { class: 'nm', text: opp ? opp.name : '—' }),
             h('div', { class: 'tiny dim', text: oppDesc(g, oppId) }))),
+        // прогноз на день матча: тот же, что встретит на арене
+        S.Weather ? h('div', { class: 'row between mt-xs mb' },
+          UI.wxChip(S.Weather.forFixture(g, upcoming)),
+          h('span', { class: 'tiny dim', text: isHome ? 'у нашей арены' : 'в городе соперника' })) : null,
         thisWeek
           ? h('div', { class: 'btn-row' },
             h('button', { class: 'btn', onclick: () => UI.playMatch(upcoming, 'instant') }, 'Мгновенно'),

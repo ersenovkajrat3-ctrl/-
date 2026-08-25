@@ -78,6 +78,9 @@
     drawCourt();
     drawStats();
     drawControls();
+    // с чего начинается матч: за окном месяц и погода, в зале — трибуны
+    const wxIntro = S.Weather.forFixture(g, fx);
+    pushLine('evt', wxWelcome(wxIntro) + ' Зал заполнен на ' + Math.round(live.fill * 100) + '%.', '');
     pushLine('evt', 'Стартовый свисток. ' + Sn.teamName(g, fx.h) + ' принимает ' + Sn.teamName(g, fx.a) + '.', '');
     if (g.settings.sound) S.Audio.whistle(false);
     schedule();
@@ -215,6 +218,11 @@
     });
     live.head.appendChild(strip);
 
+    const wx = S.Weather.forFixture(UI.game, live.fx);
+    live.head.appendChild(h('div', { class: 'row between mt-xs' },
+      UI.wxChip(wx),
+      h('span', { class: 'tiny dim', text: 'за стенами зала' })));
+
     if (live.isHome) {
       const sup = Math.round((live.support != null ? live.support : 0.5) * 100);
       live.head.appendChild(h('div', { class: 'support-meter' },
@@ -245,6 +253,38 @@
         h('span', { text: p.st.aces || 0 })));
     });
   }
+
+  /* ---------- погода ---------- */
+  /* Маленькая иконка к строке «октябрь · +5°, дождь»: та же погода, что и за стенами зала. */
+  const WX_ICON = {
+    clear: '<circle cx="8" cy="8" r="3.4" fill="#ffc861"/><g stroke="#ffc861" stroke-width="1.3" stroke-linecap="round"><path d="M8 1v1.8M8 13.2V15M1 8h1.8M13.2 8H15M3.1 3.1l1.3 1.3M11.6 11.6l1.3 1.3M12.9 3.1l-1.3 1.3M4.4 11.6l-1.3 1.3"/></g>',
+    cloud: '<path d="M4.4 12h7.2a2.9 2.9 0 00.3-5.8A4.2 4.2 0 004 6.6 2.7 2.7 0 004.4 12z" fill="#9fb0c8"/>',
+    rain: '<path d="M4.4 9.6h7.2a2.7 2.7 0 00.3-5.4A4 4 0 004 4.5a2.6 2.6 0 00.4 5.1z" fill="#8fa3bd"/><g stroke="#6fb3ee" stroke-width="1.3" stroke-linecap="round"><path d="M5.4 11.6l-.9 2.4M8.2 11.6l-.9 2.4M11 11.6l-.9 2.4"/></g>',
+    shower: '<path d="M4.4 9.2h7.2a2.7 2.7 0 00.3-5.4A4 4 0 004 4.1a2.6 2.6 0 00.4 5.1z" fill="#7f95b2"/><g stroke="#4ea2ea" stroke-width="1.5" stroke-linecap="round"><path d="M5.1 10.9l-1.2 3.2M8.1 10.9l-1.2 3.2M11.1 10.9l-1.2 3.2"/></g>',
+    sleet: '<path d="M4.4 9.4h7.2a2.7 2.7 0 00.3-5.4A4 4 0 004 4.3a2.6 2.6 0 00.4 5.1z" fill="#8fa3bd"/><g stroke="#6fb3ee" stroke-width="1.3" stroke-linecap="round"><path d="M5.4 11.4l-.9 2.4M10.6 11.4l-.9 2.4"/></g><circle cx="8" cy="13" r="1.15" fill="#eaf3ff"/>',
+    snow: '<path d="M4.4 9.2h7.2a2.7 2.7 0 00.3-5.4A4 4 0 004 4.1a2.6 2.6 0 00.4 5.1z" fill="#a8bcd6"/><g fill="#eaf3ff"><circle cx="5.2" cy="12.4" r="1.15"/><circle cx="8" cy="13.6" r="1.15"/><circle cx="10.8" cy="12.4" r="1.15"/></g>',
+    blizzard: '<g stroke="#cfe0f4" stroke-width="1.3" stroke-linecap="round"><path d="M2 5h9.5M2 8.4h7M2 11.8h10"/></g><g fill="#eaf3ff"><circle cx="13.4" cy="5" r="1.2"/><circle cx="10.2" cy="8.4" r="1.2"/><circle cx="13.8" cy="11.8" r="1.2"/></g>',
+    frost: '<g stroke="#bcdcf5" stroke-width="1.25" stroke-linecap="round"><path d="M8 1.6v12.8M2.5 4.8l11 6.4M13.5 4.8l-11 6.4"/></g><circle cx="8" cy="8" r="1.5" fill="#eaf6ff"/>',
+    thaw: '<path d="M4.4 9.4h7.2a2.7 2.7 0 00.3-5.4A4 4 0 004 4.3a2.6 2.6 0 00.4 5.1z" fill="#9fb0c8"/><g stroke="#7fc6f0" stroke-width="1.3" stroke-linecap="round"><path d="M5.6 11.5l-.7 2.3M8.4 11.5l-.7 2.3"/></g><path d="M10.6 11.6h3" stroke="#cfe0f4" stroke-width="1.3" stroke-linecap="round"/>',
+    bloom: '<circle cx="8" cy="8" r="3" fill="#ffd479"/><g fill="#f7d7e4"><ellipse cx="2.6" cy="4.2" rx="1.5" ry="1"/><ellipse cx="13" cy="6" rx="1.5" ry="1"/><ellipse cx="4" cy="12.6" rx="1.5" ry="1"/></g>',
+  };
+
+  function wxIcon(wx, size) {
+    const el = svgEl('svg', { viewBox: '0 0 16 16', width: size || 15, height: size || 15 });
+    el.innerHTML = WX_ICON[wx.kind] || WX_ICON.cloud;
+    return el;
+  }
+
+  /** «октябрь · +5°, дождь» с иконкой — в шапке матча и в карточке ближайшего тура */
+  UI.wxChip = function (wx, opts) {
+    if (!wx) return null;
+    const o = opts || {};
+    return h('span', { class: 'wx-chip' + (o.cls ? ' ' + o.cls : '') },
+      wxIcon(wx, o.size),
+      h('b', { text: wx.monthName }),
+      h('span', { text: wx.label }));
+  };
+  UI.wxIcon = wxIcon;
 
   /* ---------- корт ---------- */
   /* Площадка живёт: игроки переезжают по зонам с анимацией, мяч летит по дуге,
@@ -297,10 +337,203 @@
     defs.appendChild(sym);
   }
 
+  /* ---------- улица вокруг дворца спорта ---------- */
+  /* Зал стоит не в вакууме: вокруг здания видна погода того месяца, на который выпал матч.
+     Кадр расширяется на поле MARGIN во все стороны — координаты самого корта не меняются. */
+  const MARGIN = 26;
+
+  function outsidePoints(rng, n, band) {
+    const pts = [];
+    for (let i = 0; i < n; i++) pts.push([band[0] + rng.next() * (band[2] - band[0]), band[1] + rng.next() * (band[3] - band[1])]);
+    return pts;
+  }
+
+  /** земля, деревья, фонари, машины и сугробы вокруг зала */
+  function buildOutside(svg, defs, wx, rng) {
+    const pal = wx.palette;
+    const X0 = -MARGIN, Y0 = -MARGIN, W = VB.w + MARGIN * 2, H = VB.h + MARGIN * 2;
+    const g = svgEl('g', { class: 'wx-outside' });
+
+    // вид сверху: вокруг здания не небо, а земля — снег, мокрый асфальт или трава
+    g.appendChild(svgEl('rect', { x: X0, y: Y0, width: W, height: H, rx: 16, fill: pal.ground }));
+    // подъездная дорожка вокруг здания
+    g.appendChild(svgEl('rect', {
+      x: -9, y: -9, width: VB.w + 18, height: VB.h + 18, rx: 15,
+      fill: wx.cover > 0.4 ? '#c3d2e6' : wx.wet ? '#3c434d' : '#41474f',
+    }));
+    // блеск мокрого асфальта
+    if (wx.wet) g.appendChild(svgEl('rect', {
+      x: -9, y: -9, width: VB.w + 18, height: VB.h + 18, rx: 15,
+      fill: 'none', stroke: 'rgba(150,195,240,.2)', 'stroke-width': 7,
+    }));
+
+    // лужи после дождя
+    if (wx.wet) {
+      outsidePoints(rng, 12, [X0 + 3, Y0 + 3, VB.w + MARGIN - 3, VB.h + MARGIN - 3])
+        .filter((p) => p[0] < -3 || p[0] > VB.w + 3 || p[1] < -3 || p[1] > VB.h + 3)
+        .forEach((p) => {
+          g.appendChild(svgEl('ellipse', {
+            cx: p[0], cy: p[1], rx: 4 + rng.next() * 6, ry: 2 + rng.next() * 1.8,
+            fill: 'rgba(140,190,240,.34)',
+          }));
+        });
+    }
+
+    // сугробы вдоль стен
+    if (wx.cover > 0.25) {
+      const op = (0.55 + wx.cover * 0.45).toFixed(2);
+      const drifts = [
+        [-24, 40, 11, 80], [-24, 150, 10, 66], [VB.w + 13, 30, 11, 90], [VB.w + 13, 165, 10, 60],
+        [50, -24, 96, 10], [200, -24, 76, 10], [70, VB.h + 14, 120, 11], [232, VB.h + 14, 66, 10],
+      ];
+      drifts.forEach((d) => g.appendChild(svgEl('rect', {
+        x: d[0], y: d[1], width: d[2], height: d[3], rx: 5, fill: '#fbfdff', opacity: op,
+        stroke: 'rgba(120,155,200,.45)', 'stroke-width': 0.9,
+      })));
+    }
+
+    // опавшая листва по газону
+    if (wx.leaves > 0.1) {
+      const leafInk = ['#d0801c', '#b0561a', '#e5a52c', '#8f5c1d'];
+      const n = Math.round(18 + wx.leaves * 30);
+      outsidePoints(rng, n, [X0 + 2, Y0 + 2, VB.w + MARGIN - 2, VB.h + MARGIN - 2])
+        .filter((p) => p[0] < -2 || p[0] > VB.w + 2 || p[1] < -2 || p[1] > VB.h + 2)
+        .forEach((p) => g.appendChild(svgEl('ellipse', {
+          cx: p[0], cy: p[1], rx: 2.6, ry: 1.5,
+          fill: leafInk[Math.floor(rng.next() * leafInk.length)],
+          opacity: (0.7 + rng.next() * 0.3).toFixed(2),
+          transform: 'rotate(' + Math.round(rng.next() * 180) + ' ' + p[0].toFixed(1) + ' ' + p[1].toFixed(1) + ')',
+        })));
+    }
+
+    // деревья по периметру: крона зависит от месяца
+    const treeSpots = [
+      [-19, 30], [-19, 104], [-19, 180], [-19, 244],
+      [VB.w + 19, 26], [VB.w + 19, 104], [VB.w + 19, 186], [VB.w + 19, 246],
+      [34, -19], [126, -19], [270, -19], [84, VB.h + 19], [198, VB.h + 19], [300, VB.h + 19],
+    ];
+    treeSpots.forEach((t, i) => {
+      const r = 6 + (i % 3) * 1.1;
+      g.appendChild(svgEl('circle', { cx: t[0], cy: t[1] + 1, r: r * 0.85, fill: 'rgba(0,0,0,.25)' }));
+      if (wx.foliage === 'bare') {
+        g.appendChild(svgEl('circle', { cx: t[0], cy: t[1], r: 1.5, fill: pal.trunk }));
+        for (let b = 0; b < 6; b++) {
+          const ang = (b / 6) * Math.PI * 2 + i;
+          g.appendChild(svgEl('path', {
+            d: 'M' + t[0] + ' ' + t[1] + 'L' + (t[0] + Math.cos(ang) * r) + ' ' + (t[1] + Math.sin(ang) * r),
+            stroke: pal.tree, 'stroke-width': 1.3, 'stroke-linecap': 'round', fill: 'none',
+          }));
+        }
+      } else {
+        g.appendChild(svgEl('circle', { cx: t[0], cy: t[1], r, fill: pal.tree }));
+        if (wx.foliage === 'snowy') {
+          g.appendChild(svgEl('circle', { cx: t[0] - r * 0.25, cy: t[1] - r * 0.25, r: r * 0.55, fill: '#ffffff', opacity: 0.85 }));
+        } else if (wx.foliage === 'gold') {
+          g.appendChild(svgEl('circle', { cx: t[0] + r * 0.3, cy: t[1] - r * 0.3, r: r * 0.45, fill: '#eab543', opacity: 0.9 }));
+        } else {
+          g.appendChild(svgEl('circle', { cx: t[0] - r * 0.28, cy: t[1] - r * 0.28, r: r * 0.42, fill: '#ffffff', opacity: 0.12 }));
+        }
+      }
+    });
+
+    // припаркованные машины у входа
+    const cars = [[10, VB.h + 12], [36, VB.h + 12], [62, VB.h + 12], [248, -21], [274, -21], [300, -21]];
+    const carInk = ['#5d6b88', '#8a5252', '#456a71', '#77775a'];
+    cars.forEach((c, i) => {
+      g.appendChild(svgEl('rect', { x: c[0], y: c[1], width: 20, height: 9.5, rx: 3, fill: carInk[i % carInk.length] }));
+      g.appendChild(svgEl('rect', { x: c[0] + 4, y: c[1] + 1.7, width: 12, height: 4, rx: 1.6, fill: 'rgba(190,225,255,.4)' }));
+      if (wx.cover > 0.4) g.appendChild(svgEl('rect', { x: c[0] + 1, y: c[1] - 1.6, width: 18, height: 3, rx: 1.5, fill: '#f2f7fd', opacity: 0.9 }));
+    });
+
+    // фонари: вечером горят, весной и летом просто стоят
+    const lampGrad = svgEl('radialGradient', { id: 'wxLamp' });
+    lampGrad.appendChild(svgEl('stop', { offset: 0, 'stop-color': 'rgba(255,212,132,.6)' }));
+    lampGrad.appendChild(svgEl('stop', { offset: 1, 'stop-color': 'rgba(255,212,132,0)' }));
+    defs.appendChild(lampGrad);
+    const lamps = [[-19, 68], [-19, 212], [VB.w + 19, 62], [VB.w + 19, 216], [172, -19], [172, VB.h + 19]];
+    lamps.forEach((l) => {
+      if (wx.night) g.appendChild(svgEl('circle', { cx: l[0], cy: l[1], r: 21, fill: 'url(#wxLamp)' }));
+      g.appendChild(svgEl('circle', { cx: l[0], cy: l[1], r: 2.6, fill: wx.night ? '#ffdc96' : '#93a0b3' }));
+      if (wx.night) g.appendChild(svgEl('circle', { cx: l[0], cy: l[1], r: 5, fill: 'none', stroke: 'rgba(255,220,150,.35)', 'stroke-width': 1.2 }));
+    });
+
+    // край крыши: зимой по нему лежит снег
+    g.appendChild(svgEl('rect', {
+      x: -3, y: -3, width: VB.w + 6, height: VB.h + 6, rx: 14,
+      fill: 'none', stroke: wx.cover > 0.4 ? '#e6eefa' : '#0a1120', 'stroke-width': 5,
+    }));
+    return g;
+  }
+
+  /** осадки: падают только за стенами зала, внутрь не попадают */
+  function buildPrecipitation(svg, defs, wx, rng, reduce) {
+    if (!wx.drop) return null;
+    const X0 = -MARGIN, Y0 = -MARGIN, W = VB.w + MARGIN * 2, H = VB.h + MARGIN * 2;
+    const mask = svgEl('mask', { id: 'wxMask' });
+    mask.appendChild(svgEl('rect', { x: X0, y: Y0, width: W, height: H, fill: '#fff' }));
+    mask.appendChild(svgEl('rect', { x: 0, y: 0, width: VB.w, height: VB.h, rx: 12, fill: '#000' }));
+    defs.appendChild(mask);
+
+    const layer = svgEl('g', { class: 'wx-drops', mask: 'url(#wxMask)' });
+    const kind = wx.drop;
+    const count = Math.round((kind === 'rain' ? 104 : kind === 'sleet' ? 88 : kind === 'snow' ? 96 : 54) * (0.6 + wx.density * 0.5));
+    const travel = H + 30;
+    for (let i = 0; i < count; i++) {
+      const x = X0 + rng.next() * W;
+      const fast = 0.55 + rng.next() * 0.6;                     // ближе к зрителю — быстрее и крупнее
+      const dur = (kind === 'rain' ? 0.85 : kind === 'sleet' ? 1.5 : kind === 'snow' ? 6.5 : 7.5) / fast;
+      const dx = -wx.wind * (kind === 'rain' ? 26 : 60) * (0.6 + rng.next() * 0.8);
+      let el;
+      if (kind === 'rain' || (kind === 'sleet' && i % 2 === 0)) {
+        el = svgEl('line', {
+          x1: 0, y1: 0, x2: -wx.wind * 4.5, y2: 8 + fast * 7,
+          stroke: 'rgba(206,230,255,.8)', 'stroke-width': (0.6 + fast * 0.7).toFixed(2), 'stroke-linecap': 'round',
+        });
+      } else if (kind === 'petal') {
+        el = svgEl('ellipse', {
+          rx: 1.5 + fast, ry: 0.9 + fast * 0.5,
+          fill: rng.next() > 0.5 ? '#f7d7e4' : '#fdf3e0', opacity: (0.6 + rng.next() * 0.35).toFixed(2),
+        });
+      } else if (wx.wind > 1 && i % 3 === 0) {
+        // метель: часть хлопьев вытянута ветром в штрихи
+        el = svgEl('ellipse', {
+          rx: (2.4 + fast * 2.6).toFixed(2), ry: (0.5 + fast * 0.45).toFixed(2),
+          fill: '#ffffff', stroke: 'rgba(96,138,192,.5)', 'stroke-width': 0.3,
+          opacity: (0.6 + rng.next() * 0.35).toFixed(2),
+          transform: 'rotate(' + (16 + rng.next() * 12).toFixed(0) + ')',
+        });
+      } else {
+        // на белом снегу белые хлопья без контура не читаются
+        el = svgEl('circle', {
+          r: (0.8 + fast * 1.2).toFixed(2), fill: '#ffffff',
+          stroke: 'rgba(96,138,192,.55)', 'stroke-width': 0.35,
+          opacity: (0.7 + rng.next() * 0.3).toFixed(2),
+        });
+      }
+      el.setAttribute('class', 'wx-drop' + (kind === 'petal' ? ' spin' : ''));
+      el.style.setProperty('--x', x.toFixed(1) + 'px');
+      el.style.setProperty('--dx', dx.toFixed(1) + 'px');
+      el.style.setProperty('--dy', travel + 'px');
+      if (reduce) {
+        // без анимации капли просто расставлены по всей высоте
+        el.style.translate = x.toFixed(1) + 'px ' + (Y0 + rng.next() * H).toFixed(1) + 'px';
+      } else {
+        el.style.animationDuration = dur.toFixed(2) + 's';
+        el.style.animationDelay = (-rng.next() * dur).toFixed(2) + 's';
+      }
+      layer.appendChild(el);
+    }
+    return layer;
+  }
+
   function buildCourt(game, fx) {
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const rng = game._rng;
-    const svg = svgEl('svg', { viewBox: '0 0 ' + VB.w + ' ' + VB.h, class: 'court' });
+    const wx = S.Weather.forFixture(game, fx);
+    const svg = svgEl('svg', {
+      viewBox: (-MARGIN) + ' ' + (-MARGIN) + ' ' + (VB.w + MARGIN * 2) + ' ' + (VB.h + MARGIN * 2),
+      class: 'court wx-' + wx.kind,
+    });
     const defs = svgEl('defs', {});
     svg.appendChild(defs);
     const homeClub = game.clubs[fx.h];
@@ -324,6 +557,8 @@
     defs.appendChild(glow);
     fanSymbol(svg);
 
+    // сначала улица, потом само здание поверх неё
+    svg.appendChild(buildOutside(svg, defs, wx, rng));
     svg.appendChild(svgEl('rect', { x: 0, y: 0, width: VB.w, height: VB.h, rx: 12, fill: '#101828' }));
 
     // ---- трибуны: ряды зрителей, плотность зависит от заполняемости зала ----
@@ -459,8 +694,12 @@
       side.bench.forEach((p) => { if (!dots[p.id]) mkFigure(p, top); });
     });
 
+    // осадки поверх всего, но только за стенами зала
+    const drops = buildPrecipitation(svg, defs, wx, rng, reduce);
+    if (drops) svg.appendChild(drops);
+
     return {
-      svg, dots, numbers, ball, shadow, boards, crowd, reduce, playersLayer,
+      svg, dots, numbers, ball, shadow, boards, crowd, reduce, playersLayer, wx,
       texts: boardTexts(game, homeClub, away), boardIndex: 0,
     };
   }
@@ -711,6 +950,24 @@
   function shortText(rec) {
     const map = { ace: 'Эйс', serve_error: 'Ошибка подачи', kill: 'Атака', block: 'Блок', attack_error: 'Ошибка атаки', long_rally: 'Ошибка' };
     return map[rec.reason] || 'Очко';
+  }
+
+  /** фраза комментатора про погоду за стенами зала */
+  function wxWelcome(wx) {
+    const cap = wx.monthName[0].toUpperCase() + wx.monthName.slice(1);
+    const by = {
+      blizzard: 'на улице метёт, у входа сугробы по колено',
+      snow: 'за окнами тихо падает снег',
+      frost: 'на улице трещит мороз, зато небо чистое',
+      shower: 'у дворца спорта стеной идёт ливень',
+      rain: 'на парковке дождь и лужи',
+      sleet: 'на улице мокрый снег с дождём',
+      thaw: 'на улице оттепель, снег на газонах осел',
+      cloud: 'на улице пасмурно',
+      clear: 'вечер за окнами ясный',
+      bloom: 'на улице тепло, деревья у арены в цвету',
+    }[wx.kind] || 'на улице спокойно';
+    return cap + ', ' + (wx.temp > 0 ? '+' : '') + wx.temp + '° — ' + by + '.';
   }
 
   function pushLine(cls, text, score) {

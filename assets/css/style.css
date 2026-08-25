@@ -141,6 +141,7 @@ a { color: var(--accent); }
 .section-title:first-child { margin-top: 4px; }
 .row { display: flex; align-items: center; gap: 10px; }
 .row.between { justify-content: space-between; }
+.mt-xs { margin-top: 5px; }
 .row.wrap { flex-wrap: wrap; }
 .grow { flex: 1; min-width: 0; }
 .muted { color: var(--muted); }
@@ -546,6 +547,25 @@ table.tbl td.name { max-width: 170px; }
 @keyframes fig-toss { 0% { translate: 0 2px; } 50% { translate: 0 -2px; } 100% { translate: 0 0; } }
 
 .court .fan { transform-box: view-box; transform-origin: center bottom; }
+
+/* ---------- погода за стенами зала ---------- */
+.court .wx-drop {
+  transform-box: view-box;
+  translate: var(--x) -34px;
+  animation-name: wx-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes wx-fall {
+  from { translate: var(--x) -34px; }
+  to { translate: calc(var(--x) + var(--dx)) var(--dy); }
+}
+.court .wx-drop.spin { animation-name: wx-fall, wx-spin; animation-timing-function: linear, linear; }
+@keyframes wx-spin { from { rotate: 0deg; } to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .court .wx-drop { animation: none; } }
+.wx-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--dim); }
+.wx-chip svg { display: block; }
+.wx-chip b { color: var(--muted); font-weight: 700; }
 .court .fan.cheer { animation: fan-cheer .8s ease-out var(--delay, 0s); }
 @keyframes fan-cheer {
   0% { translate: 0 0; scale: 1; }

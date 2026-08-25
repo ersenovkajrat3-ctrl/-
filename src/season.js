@@ -124,7 +124,7 @@
     // преимущество своей площадки дают трибуны: полупустой тихий зал почти не помогает
     let homeBonus = 1.6;
     if (homeClub) {
-      const att = Ec.attendance(game, homeClub, team(game, fx.a));
+      const att = Ec.attendance(game, homeClub, team(game, fx.a), S.Weather && S.Weather.forFixture(game, fx));
       fx.attendanceHint = att;
       homeBonus = S.Fans.homeBonus(game, homeClub, att.fill);
       if (!isFinite(homeBonus)) homeBonus = 1.6;

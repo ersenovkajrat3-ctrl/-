@@ -23,7 +23,7 @@
   }
 
   /* ---------- билеты ---------- */
-  function attendance(game, club, opponent) {
+  function attendance(game, club, opponent, wx) {
     const cap = S.World.arenaCapacity(club);
     const div = DIVISIONS[club.division];
     const fans = club.fans;
@@ -34,6 +34,8 @@
     // цена билета: дороже ожидаемой — зал пустее
     const expected = 300 + club.reputation * 12;
     fill *= U.clamp(1.25 - (club.ticketPrice / expected) * 0.42, 0.45, 1.2);
+    // погода на улице: в метель дойдут не все, тёплым майским вечером придут лишние
+    if (wx && S.Weather) fill *= S.Weather.attendanceFactor(wx);
     fill = U.clamp(fill, 0.12, 0.99);
     // абонементы — гарантированный пол посещаемости: эти люди придут в любую погоду
     const floor = Math.min(cap, fans.members * 0.9);
@@ -87,8 +89,8 @@
     club.merchBoost = U.clamp((club.merchBoost || 0) + amount, 0, 1.4);
   }
 
-  function matchdayIncome(game, club, opponent) {
-    const att = attendance(game, club, opponent);
+  function matchdayIncome(game, club, opponent, wx) {
+    const att = attendance(game, club, opponent, wx);
     const tickets = Math.round(att.count * club.ticketPrice);
     const boxes = Math.round(club.arena.vip * 45 * club.ticketPrice * 4);   // ложи продаются пакетами
     const food = matchdayService(game, club, att.count);

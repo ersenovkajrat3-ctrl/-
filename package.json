@@ -12,6 +12,7 @@
     "e2e:save": "node tools/e2e-save.js",
     "e2e:late": "node tools/e2e-late.js",
     "e2e:press": "node tools/e2e-press.js",
+    "e2e:weather": "node tools/e2e-weather.js",
     "build": "node tools/build-single.js",
     "icons": "node tools/make-icons.js",
     "www": "node tools/build-www.js",

@@ -1,5 +1,5 @@
 /* Прогон полных сезонов без интерфейса: проверка календаря, таблиц, плей-офф и экономики. */
-['core','data','players','engine','economy','identity','fans','world','feed','press','season','calendar','transfers','national'].forEach(m=>require('../src/'+m+'.js'));
+['core','data','players','engine','economy','identity','fans','weather','world','feed','press','season','calendar','transfers','national'].forEach(m=>require('../src/'+m+'.js'));
 const S=globalThis.SETKA,{U,DIVISIONS}=S,W=S.World,Sn=S.Season,P=S.Players,Ec=S.Economy;
 const seed=Number(process.argv[2]||2024), seasons=Number(process.argv[3]||3);
 const g=W.createWorld(seed);

@@ -43,7 +43,7 @@
     // деньги за домашний матч
     if (homeIsClub && fx.type !== 'friendly') {
       const opp = awayIsClub ? game.clubs[fx.a] : Sn.team(game, fx.a);
-      const inc = Ec.matchdayIncome(game, game.clubs[fx.h], opp);
+      const inc = Ec.matchdayIncome(game, game.clubs[fx.h], opp, S.Weather && S.Weather.forFixture(game, fx));
       fx.attendance = inc.attendance;
       const hc = game.clubs[fx.h];
       hc.attendanceLog = hc.attendanceLog || [];
