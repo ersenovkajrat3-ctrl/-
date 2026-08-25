@@ -1,4 +1,4 @@
-/* Сетка — трансферы: рынок, лимит легионеров, торг, работа ИИ-клубов. */
+/* Volleyball Manager — трансферы: рынок, лимит легионеров, торг, работа ИИ-клубов. */
 (function (global) {
   const S = global.SETKA || (global.SETKA = {});
   const { U, FOREIGN_LIMIT, DIVISIONS } = S;

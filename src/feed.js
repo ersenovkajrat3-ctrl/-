@@ -1,4 +1,4 @@
-/* Сетка — лента «Подача»: вымышленная соцсеть внутри игры.
+/* Volleyball Manager — лента «Подача»: вымышленная соцсеть внутри игры.
    Посты не пишутся вручную: собираются по шаблонам из тех же событий, что уже есть в игре.
    Реакции складываются в индекс медийности, от которого зависят спонсорские предложения. */
 (function (global) {
@@ -10,7 +10,7 @@
     rival:   { key: 'rival',   label: 'Соперник · капитан', handle: '@rival_captain', avatar: 'С', kind: 'rival' },
     fan:     { key: 'fan',     label: 'Болельщик',          handle: '@sektorb_forever', avatar: 'Б', kind: 'fan' },
     insider: { key: 'insider', label: 'Инсайдер лиги',      handle: '@volley_insider', avatar: 'И', kind: 'insider' },
-    press:   { key: 'press',   label: 'Волейбол · сводка',  handle: '@setka_daily',    avatar: 'В', kind: 'press' },
+    press:   { key: 'press',   label: 'Волейбол · сводка',  handle: '@vm_daily'   ,    avatar: 'В', kind: 'press' },
   };
 
   /* шаблоны: {tone} подставляется вариантом по выбранному тону официальных постов */

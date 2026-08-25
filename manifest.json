@@ -1,6 +1,6 @@
 {
-  "name": "Сетка — волейбольный менеджер",
-  "short_name": "Сетка",
+  "name": "Volleyball Manager",
+  "short_name": "Volleyball Manager",
   "description": "Мобильный менеджер волейбольного клуба: состав по амплуа, ротация, трансферы, арена, спонсоры и еврокубки.",
   "lang": "ru",
   "start_url": "./index.html",
@@ -9,11 +9,34 @@
   "orientation": "portrait",
   "background_color": "#080d17",
   "theme_color": "#080d17",
-  "categories": ["games", "sports"],
+  "categories": [
+    "games",
+    "sports"
+  ],
   "icons": [
-    { "src": "assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "assets/icons/icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

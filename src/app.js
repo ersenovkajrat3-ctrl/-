@@ -1,4 +1,4 @@
-/* Сетка — запуск приложения: стартовый экран, выбор клуба, итоги сезона, увольнение. */
+/* Volleyball Manager — запуск приложения: стартовый экран, выбор клуба, итоги сезона, увольнение. */
 (function (global) {
   const S = global.SETKA;
   const { U, DIVISIONS } = S;
@@ -14,7 +14,7 @@
     scr.innerHTML = '';
     scr.appendChild(h('div', { class: 'hero' },
       h('div', { class: 'logo' }, ballLogo(46)),
-      h('h1', { text: 'Сетка' }),
+      h('h1', { text: 'Volleyball Manager', style: 'font-size:30px' }),
       h('p', { text: 'Менеджер волейбольного клуба: от первенства регионов до еврокубков' })));
 
     const box = h('div', { class: 'card' });

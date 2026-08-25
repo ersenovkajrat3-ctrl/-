@@ -1,4 +1,4 @@
-/* Сетка — генерация мира: клубы, составы, арены, финансы, календарь сезона. */
+/* Volleyball Manager — генерация мира: клубы, составы, арены, финансы, календарь сезона. */
 (function (global) {
   const S = global.SETKA || (global.SETKA = {});
   const { U, DIVISIONS, CLUB_SEED, FOREIGN_LIMIT, EURO_POOL } = S;

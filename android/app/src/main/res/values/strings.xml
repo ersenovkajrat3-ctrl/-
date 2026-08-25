@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Сетка</string>
-    <string name="title_activity_main">Сетка</string>
+    <string name="app_name">Volleyball Manager</string>
+    <string name="title_activity_main">Volleyball Manager</string>
     <string name="package_name">com.setka.volleyball</string>
     <string name="custom_url_scheme">com.setka.volleyball</string>
 </resources>

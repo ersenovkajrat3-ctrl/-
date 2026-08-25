@@ -18,5 +18,5 @@ const body = html
   .replace(/navigator\.serviceWorker\.register\('sw\.js'\)/, 'Promise.reject()');
 
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
-fs.writeFileSync(path.join(root, 'dist/setka.html'), body);
-console.log('dist/setka.html — ' + (body.length / 1024).toFixed(0) + ' КБ');
+fs.writeFileSync(path.join(root, 'dist/volleyball-manager.html'), body);
+console.log('dist/volleyball-manager.html — ' + (body.length / 1024).toFixed(0) + ' КБ');

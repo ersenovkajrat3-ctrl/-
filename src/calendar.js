@@ -1,4 +1,4 @@
-/* Сетка — ход сезона: неделя за неделей, плей-офф, межсезонье. */
+/* Volleyball Manager — ход сезона: неделя за неделей, плей-офф, межсезонье. */
 (function (global) {
   const S = global.SETKA || (global.SETKA = {});
   const { U, DIVISIONS, EURO_CUPS } = S;

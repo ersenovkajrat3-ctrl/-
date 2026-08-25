@@ -1,4 +1,4 @@
-/* Сетка — экономика клуба: билеты, спонсоры, арена как капекс, кредиты, призовые. */
+/* Volleyball Manager — экономика клуба: билеты, спонсоры, арена как капекс, кредиты, призовые. */
 (function (global) {
   const S = global.SETKA || (global.SETKA = {});
   const { U, DIVISIONS, ARENA_UPGRADES, SPONSOR_BRANDS, SPONSOR_TYPES } = S;

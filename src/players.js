@@ -1,4 +1,4 @@
-/* Сетка — игроки: генерация, рейтинги, развитие, стоимость, зарплата. */
+/* Volleyball Manager — игроки: генерация, рейтинги, развитие, стоимость, зарплата. */
 (function (global) {
   const S = global.SETKA || (global.SETKA = {});
   const { U, ROLE_WEIGHTS, NAMES, FOREIGN_LANGS } = S;

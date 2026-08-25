@@ -1,8 +1,23 @@
-/* Сетка — сохранение партии в localStorage. */
+/* Volleyball Manager — сохранение партии в localStorage. */
 (function (global) {
   const S = global.SETKA || (global.SETKA = {});
-  const KEY = 'setka.save.v3';
-  const SETTINGS_KEY = 'setka.settings.v1';
+  const KEY = 'vm.save.v3';
+  const SETTINGS_KEY = 'vm.settings.v1';
+  // партии, начатые до переименования игры, лежат под старыми ключами
+  const LEGACY = { save: 'setka.save.v3', settings: 'setka.settings.v1' };
+
+  /** прочитать значение, подхватив старый ключ и переехав на новый */
+  function readKey(key, legacyKey) {
+    try {
+      const cur = localStorage.getItem(key);
+      if (cur != null) return cur;
+      const old = localStorage.getItem(legacyKey);
+      if (old == null) return null;
+      localStorage.setItem(key, old);
+      localStorage.removeItem(legacyKey);
+      return old;
+    } catch (e) { return null; }
+  }
 
   function serialize(game) {
     const clone = {};
@@ -46,12 +61,13 @@
   }
 
   function hasSave() {
-    try { return typeof localStorage !== 'undefined' && !!localStorage.getItem(KEY); } catch (e) { return false; }
+    if (typeof localStorage === 'undefined') return false;
+    return !!readKey(KEY, LEGACY.save);
   }
 
   function load() {
     try {
-      const raw = localStorage.getItem(KEY);
+      const raw = readKey(KEY, LEGACY.save);
       if (!raw) return null;
       const game = JSON.parse(raw);
       game._rng = S.RNG.load(game.rngState || { seed: game.seed || 1 });
@@ -65,14 +81,14 @@
   }
 
   function clear() {
-    try { localStorage.removeItem(KEY); } catch (e) { /* приватный режим */ }
+    try { localStorage.removeItem(KEY); localStorage.removeItem(LEGACY.save); } catch (e) { /* приватный режим */ }
   }
 
   function saveSettings(settings) {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* нет доступа */ }
   }
   function loadSettings() {
-    try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null'); } catch (e) { return null; }
+    try { return JSON.parse(readKey(SETTINGS_KEY, LEGACY.settings) || 'null'); } catch (e) { return null; }
   }
 
   S.Save = { save, load, clear, hasSave, saveSettings, loadSettings, KEY };

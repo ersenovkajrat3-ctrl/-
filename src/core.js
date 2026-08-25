@@ -1,4 +1,4 @@
-/* Сетка — ядро: ГПСЧ, утилиты, справочники имён и городов. */
+/* Volleyball Manager — ядро: ГПСЧ, утилиты, справочники имён и городов. */
 (function (global) {
   const S = global.SETKA || (global.SETKA = {});
 

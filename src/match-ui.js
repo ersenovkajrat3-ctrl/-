@@ -1,4 +1,4 @@
-/* Сетка — просмотр матча: схематичный корт сверху, текстовый комментарий и звук.
+/* Volleyball Manager — просмотр матча: схематичный корт сверху, текстовый комментарий и звук.
    3D не нужен: движок и так считает каждый розыгрыш по фазам, а показать это дешевле всего
    шестью точками по зонам ротации, дугой мяча и репликой комментатора. */
 (function (global) {
@@ -318,7 +318,7 @@
     add(homeClub.city.toUpperCase());
     S.SPONSOR_BRANDS.local.slice(0, 3).forEach((b) => add(b.toUpperCase()));
     S.SPONSOR_BRANDS.kit.slice(0, 2).forEach((b) => add(b.toUpperCase()));
-    add('СЕТКА · ЛИГА');
+    add('VOLLEYBALL MANAGER');
     return list;
   }
 

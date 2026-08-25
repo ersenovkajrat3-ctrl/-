@@ -1,4 +1,4 @@
-# Сборка Android-приложения «Сетка».
+# Сборка Android-приложения Volleyball Manager.
 # Локально APK не собрать без Android SDK, поэтому сборка идёт здесь:
 # на раннере GitHub SDK уже установлен. Готовый файл лежит в артефактах запуска.
 name: Android APK
@@ -46,12 +46,12 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Переименовать файл
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk setka-debug.apk
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk volleyball-manager-debug.apk
 
       - name: Выложить APK в артефакты
         uses: actions/upload-artifact@v4
         with:
-          name: setka-apk
-          path: setka-debug.apk
+          name: volleyball-manager-apk
+          path: volleyball-manager-debug.apk
           if-no-files-found: error
           retention-days: 30

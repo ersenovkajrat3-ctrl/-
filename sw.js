@@ -1,5 +1,5 @@
-/* Сетка — офлайн-кэш. Игра целиком статическая, поэтому кэшируем весь набор файлов. */
-const CACHE = 'setka-v3';
+/* Volleyball Manager — офлайн-кэш. Игра целиком статическая, поэтому кэшируем весь набор файлов. */
+const CACHE = 'volleyball-manager-v3';
 const ASSETS = [
   './', './index.html', './manifest.json', './assets/css/style.css', './assets/icons/icon.svg',
   './src/core.js', './src/data.js', './src/players.js', './src/engine.js', './src/economy.js',

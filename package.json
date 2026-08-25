@@ -1,7 +1,7 @@
 {
-  "name": "setka-volleyball-manager",
+  "name": "volleyball-manager",
   "version": "1.0.0",
-  "description": "Сетка — мобильный менеджер волейбольного клуба",
+  "description": "Volleyball Manager — мобильный менеджер волейбольного клуба",
   "private": true,
   "scripts": {
     "serve": "python3 -m http.server 8899",

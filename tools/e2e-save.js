@@ -25,7 +25,7 @@ const { chromium } = require('playwright');
   }
   const before = await page.evaluate(() => {
     const g = window.SETKA.UI.game, c = g.clubs[g.playerClubId];
-    return { week: g.week, results: g.results.length, balance: c.finance.balance, squad: c.squad.length, rng: g._rng.a, feed: g.feed.length, sizeKB: Math.round(JSON.stringify(window.SETKA.Save ? localStorage.getItem('setka.save.v3') || '' : '').length / 1024) };
+    return { week: g.week, results: g.results.length, balance: c.finance.balance, squad: c.squad.length, rng: g._rng.a, feed: g.feed.length, sizeKB: Math.round(JSON.stringify(window.SETKA.Save ? localStorage.getItem(window.SETKA.Save.KEY) || '' : '').length / 1024) };
   });
   await page.reload({ waitUntil: 'networkidle' });
   await page.click('text=Продолжить карьеру');
