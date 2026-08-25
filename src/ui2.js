@@ -943,6 +943,13 @@
       UI.stat(trophies + '', U.plural(trophies, ['трофей', 'трофея', 'трофеев'])),
       UI.stat(DIVISIONS[club.division].short, 'сейчас')));
 
+    // клуб, основанный игроком, ведёт отсчёт от своего первого сезона
+    if (club.founded) {
+      scr.appendChild(h('div', { class: 'card tight small' },
+        h('b', { text: club.baseName }),
+        h('span', { class: 'dim', text: ' основан в ' + club.city + ', сезон ' + club.foundedSeason + '. Начинали в ' + DIVISIONS[3].name.toLowerCase() + '.' })));
+    }
+
     // витрина
     scr.appendChild(h('div', { class: 'section-title', text: 'Витрина трофеев' }));
     if (club.trophies.length) {

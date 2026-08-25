@@ -30,6 +30,8 @@
     } else {
       box.appendChild(h('button', { class: 'btn primary full', onclick: () => pickDivision() }, 'Начать карьеру'));
     }
+    box.appendChild(h('button', { class: 'btn full mt', onclick: () => foundScreen() }, 'Создать свой клуб'));
+    box.appendChild(h('div', { class: 'tiny dim center mt-xs', text: 'Свой клуб заявляют в первенство регионов — путь наверх с самого низа' }));
     scr.appendChild(box);
 
     scr.appendChild(h('div', { class: 'card' },
@@ -142,6 +144,173 @@
             UI.toast('Добро пожаловать в ' + club.name);
           },
         }, 'Возглавить клуб'),
+      ];
+    });
+  }
+
+  /* ---------- свой клуб ---------- */
+  /* Клуб можно не выбрать из готовых, а основать: название, город, форма и эмблема —
+     всё своё. Заявка идёт в нижний дивизион: слабейший состав лиги, самый маленький зал,
+     ни одного спонсора и стартовый взнос учредителя на три месяца зарплат. */
+  function foundScreen() {
+    const I = S.Identity;
+    // в этом мире клуб уже основывали: пересобираем, иначе второе основание съест ещё один клуб
+    if (preview && preview.founding) preview = null;
+    if (!preview) preview = W.createWorld((Date.now() % 1e9) >>> 0);
+    const g = preview;
+    const rng = g._rng;
+    const draft = UI.foundDraft || (UI.foundDraft = {
+      name: rng.pick(S.CLUB_NAME_IDEAS),
+      city: rng.pick(S.CITIES),
+      identity: null,
+    });
+    if (!draft.identity) {
+      const pal = rng.pick(I.PALETTE);
+      draft.identity = I.build({ baseName: draft.name }, pal, rng.pick(I.PATTERNS), rng.pick(I.CRESTS));
+    }
+
+    const scr = document.getElementById('screen');
+    scr.className = 'screen plain';
+    scr.innerHTML = '';
+    scr.appendChild(h('div', { class: 'hero', style: 'padding:18px 10px 6px' },
+      h('h1', { text: 'Свой клуб', style: 'font-size:26px' }),
+      h('p', { text: 'Название, город и форма — ваши. Лига — самая нижняя' })));
+
+    const preview3 = h('div', { class: 'row center', style: 'gap:14px;justify-content:center;padding:4px 0 10px' });
+    const title = h('div', { class: 'center' });
+    const redraw = () => {
+      draft.identity.monogram = I.monogram(draft.name);
+      const stub = { baseName: draft.name, name: draft.name, city: draft.city, identity: draft.identity };
+      preview3.innerHTML = '';
+      preview3.appendChild(S.Crest.crestNode(stub, 76));
+      preview3.appendChild(S.Crest.shirtSvg({ shirt: draft.identity.primary, trim: draft.identity.secondary, pattern: draft.identity.pattern }, 76));
+      title.innerHTML = '';
+      title.appendChild(h('div', { style: 'font-weight:800;font-size:18px', text: draft.name }));
+      title.appendChild(h('div', { class: 'tiny dim', text: draft.city + ' · ' + DIVISIONS[DIVISIONS.length - 1].name }));
+    };
+
+    const nameInput = h('input', {
+      class: 'btn full', style: 'text-align:left', maxlength: 24, value: draft.name,
+      placeholder: 'Название клуба',
+      oninput: (e) => { draft.name = e.target.value; redraw(); },
+    });
+    const cityInput = h('input', {
+      class: 'btn full', style: 'text-align:left', maxlength: 24, value: draft.city,
+      placeholder: 'Город', list: 'cityList',
+      oninput: (e) => { draft.city = e.target.value; redraw(); },
+    });
+    const datalist = h('datalist', { id: 'cityList' });
+    S.CITIES.forEach((c) => datalist.appendChild(h('option', { value: c })));
+
+    const dice = h('button', {
+      class: 'btn', onclick: () => {
+        draft.name = rng.pick(S.CLUB_NAME_IDEAS);
+        draft.city = rng.pick(S.CITIES);
+        nameInput.value = draft.name;
+        cityInput.value = draft.city;
+        redraw();
+      },
+    }, 'Наугад');
+
+    const colorRow = h('div', { class: 'row wrap', style: 'gap:8px' });
+    I.PALETTE.forEach((pal) => {
+      colorRow.appendChild(h('button', {
+        class: 'swatch' + (draft.identity.primary === pal.primary ? ' on' : ''),
+        style: 'background:' + pal.primary, title: pal.name,
+        onclick: () => {
+          draft.identity.primary = pal.primary;
+          draft.identity.secondary = pal.trim;
+          draft.identity.palette = pal.name;
+          draft.identity.ink = I.inkOn(pal.primary);
+          foundScreen();
+        },
+      }));
+    });
+    const patternNames = { solid: 'Сплошная', stripes: 'Полосы', sash: 'Диагональ', hoop: 'Обруч', split: 'Пополам' };
+    const patternRow = h('div', { class: 'seg' });
+    I.PATTERNS.forEach((p) => patternRow.appendChild(h('button', {
+      class: draft.identity.pattern === p ? 'on' : '',
+      onclick: () => { draft.identity.pattern = p; foundScreen(); },
+    }, patternNames[p])));
+    const crestNames = { shield: 'Щит', circle: 'Круг', diamond: 'Ромб', hex: 'Шестигр.' };
+    const crestRow = h('div', { class: 'seg' });
+    I.CRESTS.forEach((cr) => crestRow.appendChild(h('button', {
+      class: draft.identity.crest === cr ? 'on' : '',
+      onclick: () => { draft.identity.crest = cr; foundScreen(); },
+    }, crestNames[cr])));
+
+    redraw();
+    const card = h('div', { class: 'card' },
+      preview3, title,
+      h('div', { class: 'section-title', style: 'margin-left:0', text: 'Название и город' }),
+      nameInput,
+      h('div', { class: 'row mt', style: 'gap:8px' }, h('span', { class: 'grow' }, cityInput), dice),
+      datalist,
+      h('div', { class: 'section-title', style: 'margin-left:0', text: 'Цвет' }), colorRow,
+      h('div', { class: 'section-title', style: 'margin-left:0', text: 'Рисунок майки' }), patternRow,
+      h('div', { class: 'section-title', style: 'margin-left:0', text: 'Эмблема' }), crestRow);
+    scr.appendChild(card);
+
+    const sameCity = Object.values(g.clubs).filter((c) => c.city === draft.city.trim());
+    scr.appendChild(h('div', { class: 'card tight tiny muted' },
+      'Клуб заявят в ' + DIVISIONS[DIVISIONS.length - 1].name.toLowerCase() + ': состав слабее всех в лиге, зал на ' + W.FOUND_CAPACITY + ' мест, '
+      + 'ни одного спонсора и пустые трибуны. Всё остальное придётся заработать.'
+      + (sameCity.length ? ' В этом городе уже играет ' + sameCity.map((c) => c.name).join(', ') + ' — будет городское дерби.' : '')));
+
+    scr.appendChild(h('button', {
+      class: 'btn primary full mt', onclick: () => {
+        const nm = draft.name.trim(), ct = draft.city.trim();
+        if (nm.length < 2) { UI.toast('Придумайте название клуба'); return; }
+        if (ct.length < 2) { UI.toast('Укажите город'); return; }
+        confirmFound(nm, ct, draft.identity);
+      },
+    }, 'Основать клуб'));
+    scr.appendChild(h('button', { class: 'btn ghost full mt', onclick: startScreen }, 'Назад'));
+  }
+
+  function confirmFound(name, city, identity) {
+    const g = preview;
+    const res = W.foundClub(g, { name, city, identity: Object.assign({}, identity) });
+    const club = res.club;
+    g.founding = true;   // мир уже изменён: назад к чистому листу только пересборкой
+    UI.modal(club.name, (m) => {
+      const power = Math.round(W.clubPower(g, club));
+      const squad = club.squad.map((id) => g.players[id]).sort((a, b) => P.overall(b) - P.overall(a)).slice(0, 5);
+      return [
+        h('div', { class: 'row mb', style: 'gap:12px' },
+          UI.crest(club, 56),
+          h('div', null,
+            h('div', { class: 'small muted', text: club.city + ' · ' + DIVISIONS[club.division].name }),
+            h('div', { class: 'tiny dim', text: 'клуб основан в сезоне ' + club.foundedSeason }))),
+        h('div', { class: 'stat-grid mb' },
+          UI.stat(power + '', 'состав'),
+          UI.stat(U.num(W.arenaCapacity(club)), 'арена'),
+          UI.stat(U.money(club.finance.balance), 'касса')),
+        h('div', { class: 'card tight tiny muted' },
+          'Место в лиге освобождает ' + res.leaving.name + ' (' + res.leaving.city + '), снявшийся с соревнований. '
+          + 'Спонсоров нет — первые предложения придут, когда о клубе начнут писать.'),
+        h('div', { class: 'section-title', style: 'margin-left:0', text: 'Кого удалось собрать' }),
+        ...squad.map((p) => UI.playerRow(p, null)),
+        h('button', {
+          class: 'btn primary full mt', onclick: () => {
+            m.close();
+            delete g.founding;
+            W.assignPlayerClub(g, club.id);
+            Sn.startSeason(g);
+            preview = null;
+            UI.foundDraft = null;
+            bootGame(g);
+            UI.toast(club.name + ' заявлен в ' + DIVISIONS[club.division].name.toLowerCase());
+          },
+        }, 'Возглавить клуб'),
+        h('button', {
+          class: 'btn ghost full mt', onclick: () => {
+            // мир уже изменён — пересобираем его заново, чтобы вернуться к чистому листу
+            m.close();
+            preview = null;
+            foundScreen();
+          },
+        }, 'Переделать'),
       ];
     });
   }

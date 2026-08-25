@@ -209,9 +209,9 @@
         const free = S.SPONSOR_BRANDS[type].filter((b) => !takenBrands.has(b));
         if (!free.length) return;
         const brand = rng.pick(free);
-        if (type !== 'local') takenBrands.add(brand); // локальных партнёров может быть много одноимённых сетей
+        if (type === 'title') takenBrands.add(brand); // эксклюзивен только титульный: клуб берёт его имя
 
-        const monthly = Math.round(S.Economy.sponsorValue(club, type) * rng.range(0.85, 1.1) / 1e5) * 1e5;
+        const monthly = S.Economy.roundMoney(S.Economy.sponsorValue(club, type) * rng.range(0.85, 1.1));
         club.finance.sponsors.push({
           id: 'sc' + U.id(), type, brand, monthly, monthsLeft: rng.int(4, 22), years: 2,
           rename: meta.rename && type === 'title', name: meta.name,
@@ -227,14 +227,84 @@
     return game;
   }
 
+  /* ---------- свой клуб ---------- */
+  /* Клуб можно не выбрать, а основать — в любом городе и с любым названием.
+     Новичка заявляют в нижний дивизион, где он занимает место клуба, снявшегося
+     с соревнований: размер лиги не меняется, календарь и таблицы считаются как обычно. */
+
+  /** обрезаем состав до скамейки новичка, но так, чтобы шестёрка и либеро остались */
+  function trimSquad(squad, size) {
+    const need = { S: 1, OP: 1, OH: 2, MB: 2, L: 1 };
+    const kept = [];
+    const rest = [];
+    squad.slice().sort((a, b) => P.overall(b) - P.overall(a)).forEach((p) => {
+      if (need[p.role] > 0) { need[p.role]--; kept.push(p); } else rest.push(p);
+    });
+    // молодёжь из академии новичок держит: это его единственный ресурс на вырост
+    rest.sort((a, b) => (b.youth ? 1 : 0) - (a.youth ? 1 : 0) || P.overall(b) - P.overall(a));
+    return kept.concat(rest).slice(0, size);
+  }
+
+  /**
+   * Основать клуб. opts: { name, city, identity, capacity }.
+   * Возвращает новый клуб — слабейший состав лиги, минимальная арена, ни одного спонсора.
+   */
+  const FOUND_CAPACITY = 380;   // самый маленький зал лиги: новичку негде играть, кроме школьного
+
+  function foundClub(game, opts) {
+    const rng = game._rng;
+    const divId = DIVISIONS.length - 1;
+    const inDiv = Object.values(game.clubs).filter((c) => c.division === divId);
+    // место освобождает самый слабый клуб дивизиона
+    const leaving = inDiv.slice().sort((a, b) => a.strength - b.strength)[0];
+    const id = leaving.id;
+    leaving.squad.forEach((pid) => { delete game.players[pid]; });
+    delete game.clubs[id];
+
+    const name = String(opts.name || 'Новый клуб').trim().slice(0, 24);
+    const city = String(opts.city || 'Москва').trim().slice(0, 24);
+    const strength = Math.max(4, Math.min.apply(null, inDiv.map((c) => c.strength)) - 3);
+    const capacity = opts.capacity || FOUND_CAPACITY;
+    const club = makeClub(rng, [name, city, divId, strength, capacity], Number(id.slice(1)));
+    club.id = id;
+    // слабее всех, кто уже играет в лиге
+    club.level = TIER_LEVEL[divId][0] - 5;
+    club.mediaIndex = 6;
+    club.ticketPrice = 250;
+    club.founded = true;
+    club.foundedSeason = game.seasonLabel;
+    club.identity = opts.identity
+      ? Object.assign({}, opts.identity, { monogram: opts.identity.monogram || S.Identity.monogram(name) })
+      : S.Identity.make(club);
+    // трибуны с нуля: ни абонементов, ни ядра поддержки
+    club.fans.mood = 46;
+    club.fans.loyalty = 28;
+    club.fans.members = 0;
+    game.clubs[id] = club;
+
+    const squad = trimSquad(P.makeSquad(rng, club.level, divId, club.id, FOREIGN_LIMIT[divId]), 13);
+    squad.forEach((p) => { game.players[p.id] = p; club.squad.push(p.id); });
+    autoLineup(game, club);
+    club.tactics = Object.assign({}, S.Engine.DEFAULT_TACTICS);
+    // касса новичка: стартовый взнос учредителя примерно на три месяца зарплат
+    // и ни одного спонсорского контракта — партнёров придётся искать самому
+    club.finance.balance = Math.round(U.sum(squad, (p) => p.contract.wage) * 3);
+    club.finance.sponsors = [];
+    game.rngState = rng.save();
+    return { club, leaving: { name: leaving.name, city: leaving.city } };
+  }
+
   /** привязать пользователя к клубу */
   function assignPlayerClub(game, clubId) {
     Object.values(game.clubs).forEach((c) => { c.isPlayer = false; });
     const club = game.clubs[clubId];
     club.isPlayer = true;
     game.playerClubId = clubId;
-    // старт карьеры: стартовый капитал скромный, задача от совета
-    club.finance.balance = Math.round(U.sum(club.squad.map((id) => game.players[id]), (p) => p.contract.wage) * 4.5);
+    // старт карьеры: стартовый капитал скромный, задача от совета.
+    // основанный с нуля клуб живёт на свои — ему баланс не подтягивают
+    if (!club.founded) {
+      club.finance.balance = Math.round(U.sum(club.squad.map((id) => game.players[id]), (p) => p.contract.wage) * 4.5);
+    }
     return club;
   }
 
@@ -278,7 +348,7 @@
 
   S.World = {
     TIER_LEVEL, WEEKS, CUP_WEEKS, EURO_GROUP_WEEKS, EURO_QF_WEEK, EURO_SF_WEEK, EURO_FINAL_WEEK, PLAYOFF_START,
-    createWorld, assignPlayerClub, buildSchedule, roundRobin, spreadRounds,
+    createWorld, assignPlayerClub, foundClub, FOUND_CAPACITY, buildSchedule, roundRobin, spreadRounds,
     autoLineup, autoLineupAvailable: (g, c) => autoLineup(g, c, true), validateLineup, arenaCapacity, arenaHasCevLicense, clubPower,
     emptyRow, tablePoints, sortTable, makeEuroClubs,
   };

@@ -189,6 +189,13 @@
   }
   function restoreName(club) { club.name = club.baseName; }
 
+  /** округление суммы контракта: в суперлиге до сотен тысяч, в первенстве регионов — до десятков,
+      иначе региональный контракт нижней лиги превращался в круглый ноль */
+  function roundMoney(v) {
+    const step = v < 1e6 ? 1e4 : 1e5;
+    return Math.max(step, Math.round(v / step) * step);
+  }
+
   function sponsorValue(club, type, game) {
     const div = DIVISIONS[club.division];
     const mediaFactor = 0.55 + club.mediaIndex / 130;
@@ -197,7 +204,7 @@
     const pressFactor = game && S.Press ? 1 + S.Press.mood(game, club.id) * 0.1 : 1;
     const base = 22e6 * div.wageIndex * mediaFactor * repFactor * pressFactor;
     const mult = { title: 0.22, kit: 0.09, local: 0.035 }[type];
-    return Math.round(base * mult / 1e5) * 1e5;
+    return roundMoney(base * mult);
   }
 
   /** бренды, уже занятые другими клубами: два «Севергаза» в одной лиге выглядят ошибкой */
@@ -217,11 +224,14 @@
       if (club.division > meta.minDivision) continue;
       if (club.mediaIndex < meta.minMedia) continue;
       if (!rng.chance(type === 'title' ? 0.55 + club.mediaIndex / 300 : 0.85)) continue;
-      const free = SPONSOR_BRANDS[type].filter((b) => !taken.has(b));
+      // экипировщик одевает много клубов, региональная сеть работает сразу в нескольких городах —
+      // эксклюзивен только титульный партнёр, потому что клуб берёт его имя
+      const own = new Set(club.finance.sponsors.map((sp) => sp.brand));
+      const free = SPONSOR_BRANDS[type].filter((b) => (type === 'title' ? !taken.has(b) : !own.has(b)));
       if (!free.length) continue;
       const brand = rng.pick(free);
       taken.add(brand);
-      const monthly = Math.round(sponsorValue(club, type, game) * rng.range(0.85, 1.2) / 1e5) * 1e5;
+      const monthly = roundMoney(sponsorValue(club, type, game) * rng.range(0.85, 1.2));
       offers.push({
         id: 'so' + U.id(), type, brand, monthly,
         years: type === 'local' ? 1 : rng.int(1, 3),
@@ -331,7 +341,7 @@
 
   S.Economy = {
     ledger, wageBill, sponsorIncome, attendance, matchdayIncome, monthlyTick,
-    prizeMoney, euroPrize, founderSupport, usedBrands, merchMonthly, matchdayMerch, matchdayService, merchAppeal, merchSpike, FOOD_TIERS, foodTier, generateSponsorOffers, signSponsor, breakSponsor, sponsorValue,
+    prizeMoney, euroPrize, founderSupport, usedBrands, merchMonthly, matchdayMerch, matchdayService, merchAppeal, merchSpike, FOOD_TIERS, foodTier, generateSponsorOffers, signSponsor, breakSponsor, sponsorValue, roundMoney,
     upgradeCost, startUpgrade, takeLoan, loanLimit, summary, renameFor, restoreName, PRIZE_BASE, TIER_COST,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
