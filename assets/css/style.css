@@ -370,16 +370,49 @@ table.tbl td.name { max-width: 150px; overflow: hidden; text-overflow: ellipsis;
 .support-meter .bar > i { background: linear-gradient(90deg, var(--teal), var(--accent)); }
 
 /* ---------- живая площадка ---------- */
-.court .pdot { transition: transform .42s cubic-bezier(.2, .85, .3, 1), opacity .25s; }
-.court .board-text { transition: opacity .22s linear; }
-.court circle.cheer { animation: cheer .62s ease-out; }
-@keyframes cheer {
-  0% { transform: translateY(0) scale(1); }
-  35% { transform: translateY(-3px) scale(1.7); }
-  100% { transform: translateY(0) scale(1); }
+.court .figure {
+  transition: transform .42s cubic-bezier(.2, .85, .3, 1), opacity .25s;
+  transform-box: view-box;
 }
-.court circle.cheer { fill: var(--cheer, #ffd166); transform-box: fill-box; transform-origin: center; }
+.court .figure .arms-up { opacity: 0; }
+.court .figure .arms-down { opacity: 1; }
+.court .figure.jump .arms-up,
+.court .figure.reach .arms-up,
+.court .figure.serving .arms-up { opacity: 1; }
+.court .figure.jump .arms-down,
+.court .figure.reach .arms-down,
+.court .figure.serving .arms-down { opacity: 0; }
+.court .figure.jump { animation: fig-jump .55s cubic-bezier(.3, .7, .3, 1); }
+@keyframes fig-jump {
+  0% { translate: 0 0; } 40% { translate: 0 -9px; } 70% { translate: 0 -5px; } 100% { translate: 0 0; }
+}
+.court .figure.serving .arms-up { animation: fig-toss .7s ease-out; }
+@keyframes fig-toss { 0% { translate: 0 2px; } 50% { translate: 0 -2px; } 100% { translate: 0 0; } }
+
+.court .fan { transform-box: view-box; transform-origin: center bottom; }
+.court .fan.cheer { animation: fan-cheer .8s ease-out var(--delay, 0s); }
+@keyframes fan-cheer {
+  0% { translate: 0 0; scale: 1; }
+  30% { translate: 0 -3.4px; scale: 1.14; }
+  60% { translate: 0 -1px; scale: 1.04; }
+  100% { translate: 0 0; scale: 1; }
+}
+
+.court .ball { transform-box: fill-box; transform-origin: center; }
+.court .ball circle { transform-origin: center; }
+
+.court .led-track { animation: led-marquee var(--led-dur, 9s) linear infinite; }
+@keyframes led-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(var(--led-to, -140px)); }
+}
+.court .led text { transition: fill .12s linear; }
+.court .led.flash text { fill: #fff6e0; }
+.court .led.flash rect:first-child { fill: #12233d; }
+
 @media (prefers-reduced-motion: reduce) {
-  .court .pdot { transition: none; }
-  .court circle.cheer { animation: none; }
+  .court .figure { transition: none; animation: none; }
+  .court .figure.jump { animation: none; }
+  .court .fan.cheer { animation: none; }
+  .court .led-track { animation: none; }
 }

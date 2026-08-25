@@ -156,8 +156,8 @@
      трибуны вспыхивают на очко, а по бортам крутится реклама спонсоров —
      тех самых, с которыми клуб подписал контракты. */
   const NS = 'http://www.w3.org/2000/svg';
-  const VB = { w: 340, h: 252 };
-  const COURT = { x: 22, y: 42, w: 296, h: 168 };
+  const VB = { w: 340, h: 266 };
+  const COURT = { x: 22, y: 54, w: 296, h: 158 };
 
   function svgEl(tag, attrs, text) {
     const e = document.createElementNS(NS, tag);
@@ -187,107 +187,211 @@
     return list;
   }
 
+  /* ---------- фигурки ---------- */
+  const SKIN = ['#e8b48c', '#d79a6f', '#c98a5e', '#f0c9a6', '#a8704a'];
+
+  /** маленький человечек-игрок: корпус в цветах команды, номер, руки внизу и поднятые */
+  function playerFigure(player, kit, dark, number, skin) {
+    const g = svgEl('g', { class: 'figure' });
+    g.appendChild(svgEl('ellipse', { cx: 0, cy: 0.6, rx: 5.2, ry: 1.9, fill: 'rgba(0,0,0,.32)' }));
+    // ноги
+    g.appendChild(svgEl('rect', { x: -2.7, y: -7.2, width: 2.1, height: 7.4, rx: 1, fill: skin }));
+    g.appendChild(svgEl('rect', { x: 0.6, y: -7.2, width: 2.1, height: 7.4, rx: 1, fill: skin }));
+    // шорты
+    g.appendChild(svgEl('rect', { x: -3.6, y: -10.2, width: 7.2, height: 3.8, rx: 1.2, fill: dark }));
+    // руки внизу
+    const armsDown = svgEl('g', { class: 'arms-down' });
+    armsDown.appendChild(svgEl('rect', { x: -5.9, y: -15.2, width: 1.9, height: 6.4, rx: 0.95, fill: skin }));
+    armsDown.appendChild(svgEl('rect', { x: 4.0, y: -15.2, width: 1.9, height: 6.4, rx: 0.95, fill: skin }));
+    g.appendChild(armsDown);
+    // руки подняты (атака, блок, подача)
+    const armsUp = svgEl('g', { class: 'arms-up' });
+    armsUp.appendChild(svgEl('rect', { x: -6.2, y: -21.4, width: 1.9, height: 7.4, rx: 0.95, fill: skin, transform: 'rotate(-12 -5.2 -14)' }));
+    armsUp.appendChild(svgEl('rect', { x: 4.3, y: -21.4, width: 1.9, height: 7.4, rx: 0.95, fill: skin, transform: 'rotate(12 5.2 -14)' }));
+    g.appendChild(armsUp);
+    // майка
+    g.appendChild(svgEl('rect', { x: -4.3, y: -16.4, width: 8.6, height: 6.8, rx: 2.2, fill: kit }));
+    g.appendChild(svgEl('rect', { x: -4.3, y: -16.4, width: 8.6, height: 1.6, rx: 0.8, fill: 'rgba(255,255,255,.35)' }));
+    g.appendChild(svgEl('text', {
+      x: 0, y: -11.4, 'text-anchor': 'middle', 'font-size': 4.2, 'font-weight': 800, fill: dark,
+    }, String(number)));
+    // голова
+    g.appendChild(svgEl('circle', { cx: 0, cy: -19.1, r: 2.75, fill: skin }));
+    g.appendChild(svgEl('path', { d: 'M-2.75 -19.6a2.75 2.75 0 015.5 0z', fill: 'rgba(20,14,8,.55)' }));
+    return g;
+  }
+
+  /** зритель на трибуне: голова, плечи и шарф в цветах клуба */
+  function fanSymbol(svg) {
+    const defs = svg.querySelector('defs');
+    const sym = svgEl('symbol', { id: 'fan', viewBox: '-4 -9 8 9', overflow: 'visible' });
+    sym.appendChild(svgEl('path', { d: 'M-2.6 0v-3.4a2.6 2.6 0 015.2 0V0z', fill: 'currentColor' }));
+    sym.appendChild(svgEl('rect', { x: -3.1, y: -3.9, width: 6.2, height: 1.3, rx: 0.6, fill: 'rgba(255,255,255,.42)' }));
+    sym.appendChild(svgEl('circle', { cx: 0, cy: -5.9, r: 1.75, fill: '#e2b183' }));
+    defs.appendChild(sym);
+  }
+
   function buildCourt(game, fx) {
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const rng = game._rng;
     const svg = svgEl('svg', { viewBox: '0 0 ' + VB.w + ' ' + VB.h, class: 'court' });
+    const defs = svgEl('defs', {});
+    svg.appendChild(defs);
     const homeClub = game.clubs[fx.h];
     const away = Sn.team(game, fx.a);
 
-    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: VB.w, height: VB.h, rx: 12, fill: '#121b2c' }));
+    // светодиодная сетка и свечение для рекламных панелей
+    const pat = svgEl('pattern', { id: 'ledDots', width: 2, height: 2, patternUnits: 'userSpaceOnUse' });
+    pat.appendChild(svgEl('rect', { width: 2, height: 2, fill: '#070b14' }));
+    pat.appendChild(svgEl('circle', { cx: 1, cy: 1, r: 0.42, fill: 'rgba(255,255,255,.09)' }));
+    defs.appendChild(pat);
+    const glow = svgEl('filter', { id: 'ledGlow', x: '-25%', y: '-90%', width: '150%', height: '280%' });
+    glow.appendChild(svgEl('feGaussianBlur', { stdDeviation: 0.85, result: 'b' }));
+    const merge = svgEl('feMerge', {});
+    merge.appendChild(svgEl('feMergeNode', { in: 'b' }));
+    merge.appendChild(svgEl('feMergeNode', { in: 'SourceGraphic' }));
+    glow.appendChild(merge);
+    defs.appendChild(glow);
+    fanSymbol(svg);
 
-    // трибуны: два ряда зрителей сверху и снизу, их плотность зависит от заполняемости
+    svg.appendChild(svgEl('rect', { x: 0, y: 0, width: VB.w, height: VB.h, rx: 12, fill: '#101828' }));
+
+    // ---- трибуны: ряды зрителей, плотность зависит от заполняемости зала ----
     const crowd = [];
     const fill = live ? live.fill : 0.6;
-    [{ y: 8, rows: 2 }, { y: VB.h - 20, rows: 2 }].forEach((band, bi) => {
-      for (let r = 0; r < band.rows; r++) {
-        for (let i = 0; i < 34; i++) {
-          if (game._rng.next() > 0.35 + fill * 0.65) continue;
-          const dot = svgEl('circle', {
-            cx: 12 + i * 9.4 + (r % 2) * 4,
-            cy: band.y + r * 8,
-            r: 2.6,
-            fill: bi === 1 ? '#ff9f1c' : '#3b4a6b',   // нижняя трибуна — свои болельщики
-            opacity: 0.55 + game._rng.next() * 0.4,
+    const homeColors = ['#ff9f1c', '#ffd166', '#e2e8f0', '#f59e0b', '#94a3b8'];
+    const awayColors = ['#2dd4bf', '#94a3b8', '#cbd5e1'];
+    const bands = [
+      { rowsY: [33, 22, 12], home: false, rect: [6, 2, 34] },
+      { rowsY: [250, 261, 239], home: true, rect: [6, 232, 32] },
+    ];
+    bands.forEach((band) => {
+      // ярусы трибун
+      svg.appendChild(svgEl('rect', {
+        x: band.rect[0], y: band.rect[1], width: VB.w - band.rect[0] * 2, height: band.rect[2], rx: 5,
+        fill: band.home ? 'rgba(255,159,28,.07)' : 'rgba(45,212,191,.05)',
+      }));
+      band.rowsY.forEach((rowY, r) => {
+        for (let i = 0; i < 27; i++) {
+          if (rng.next() > 0.30 + fill * 0.70) continue;
+          // на выезде почти весь зал — за хозяев, а в углу сидит гостевой сектор
+          const guestSector = !live.isHome && band.home && i < 5;
+          const ourSide = live.isHome ? band.home : guestSector;
+          const palette = ourSide ? homeColors : awayColors;
+          const use = svgEl('use', {
+            href: '#fan', x: 15 + i * 11.6 + (r % 2) * 5.2, y: rowY,
+            class: 'fan', width: 8, height: 9,
           });
-          crowd.push(dot);
-          svg.appendChild(dot);
+          use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#fan');
+          use.style.color = palette[Math.floor(rng.next() * palette.length)];
+          use.style.opacity = (0.66 + rng.next() * 0.34).toFixed(2);
+          crowd.push(use);
+          svg.appendChild(use);
         }
-      }
+      });
     });
 
-    // рекламные борта по периметру
+    // ---- LED-панели по бортам: бегущая строка со спонсорами ----
     const boards = [];
-    const mkBoard = (x, y, w, hgt, size) => {
-      const g = svgEl('g', {});
-      g.appendChild(svgEl('rect', { x, y, width: w, height: hgt, rx: 2, fill: '#0d1524', stroke: 'rgba(255,255,255,.10)', 'stroke-width': 0.8 }));
-      const t = svgEl('text', {
-        x: x + w / 2, y: y + hgt / 2 + size * 0.36, 'text-anchor': 'middle',
-        'font-size': size, 'font-weight': 700, 'letter-spacing': 0.6, fill: 'rgba(255,255,255,.62)',
-        class: 'board-text',
+    const mkLed = (x, y, w, hgt, idx) => {
+      const g = svgEl('g', { class: 'led' });
+      g.appendChild(svgEl('rect', { x, y, width: w, height: hgt, rx: 1.6, fill: '#070b14' }));
+      g.appendChild(svgEl('rect', { x, y, width: w, height: hgt, rx: 1.6, fill: 'url(#ledDots)' }));
+      const clipId = 'ledClip' + idx;
+      const clip = svgEl('clipPath', { id: clipId });
+      clip.appendChild(svgEl('rect', { x: x + 1, y, width: w - 2, height: hgt }));
+      defs.appendChild(clip);
+      const inner = svgEl('g', { 'clip-path': 'url(#' + clipId + ')' });
+      const track = svgEl('g', { class: 'led-track' });
+      const mkText = () => svgEl('text', {
+        x: 0, y: y + hgt / 2 + 2.4, 'font-size': 6.8, 'font-weight': 800, 'letter-spacing': 1.1,
+        fill: '#ffbf5c', filter: 'url(#ledGlow)', 'dominant-baseline': 'middle',
       }, '');
-      g.appendChild(t);
+      const t1 = mkText(), t2 = mkText();
+      track.appendChild(t1); track.appendChild(t2);
+      inner.appendChild(track);
+      g.appendChild(inner);
+      // блик стекла поверх панели
+      g.appendChild(svgEl('rect', { x, y, width: w, height: hgt / 2.4, rx: 1.6, fill: 'rgba(255,255,255,.05)' }));
       svg.appendChild(g);
-      boards.push(t);
-      return t;
+      boards.push({ g, track, t1, t2, x: x + 1, w: w - 2 });
+      return g;
     };
-    mkBoard(COURT.x, COURT.y - 14, COURT.w * 0.48, 11, 6.4);
-    mkBoard(COURT.x + COURT.w * 0.52, COURT.y - 14, COURT.w * 0.48, 11, 6.4);
-    mkBoard(COURT.x, COURT.y + COURT.h + 3, COURT.w * 0.48, 11, 6.4);
-    mkBoard(COURT.x + COURT.w * 0.52, COURT.y + COURT.h + 3, COURT.w * 0.48, 11, 6.4);
+    const bw = COURT.w * 0.475;
+    mkLed(COURT.x, COURT.y - 17, bw, 12, 0);
+    mkLed(COURT.x + COURT.w - bw, COURT.y - 17, bw, 12, 1);
+    mkLed(COURT.x, COURT.y + COURT.h + 5, bw, 12, 2);
+    mkLed(COURT.x + COURT.w - bw, COURT.y + COURT.h + 5, bw, 12, 3);
 
-    // сама площадка: свободная зона, поле, линии атаки и сетка
-    svg.appendChild(svgEl('rect', { x: COURT.x - 8, y: COURT.y - 2, width: COURT.w + 16, height: COURT.h + 4, rx: 6, fill: '#8a3f0c' }));
-    svg.appendChild(svgEl('rect', { x: COURT.x, y: COURT.y, width: COURT.w, height: COURT.h, fill: '#1d5fb5', stroke: 'rgba(255,255,255,.6)', 'stroke-width': 1.4 }));
+    // ---- площадка ----
+    svg.appendChild(svgEl('rect', { x: COURT.x - 8, y: COURT.y - 2, width: COURT.w + 16, height: COURT.h + 4, rx: 6, fill: '#9c4a10' }));
+    svg.appendChild(svgEl('rect', { x: COURT.x, y: COURT.y, width: COURT.w, height: COURT.h, fill: '#1d5fb5', stroke: 'rgba(255,255,255,.62)', 'stroke-width': 1.4 }));
     const half = COURT.h / 2;
-    svg.appendChild(svgEl('line', { x1: COURT.x, y1: COURT.y + half * 0.42, x2: COURT.x + COURT.w, y2: COURT.y + half * 0.42, stroke: 'rgba(255,255,255,.45)', 'stroke-width': 1 }));
-    svg.appendChild(svgEl('line', { x1: COURT.x, y1: COURT.y + half + half * 0.58, x2: COURT.x + COURT.w, y2: COURT.y + half + half * 0.58, stroke: 'rgba(255,255,255,.45)', 'stroke-width': 1 }));
-    // сетка: столбы и полотно
+    svg.appendChild(svgEl('line', { x1: COURT.x, y1: COURT.y + half * 0.42, x2: COURT.x + COURT.w, y2: COURT.y + half * 0.42, stroke: 'rgba(255,255,255,.4)', 'stroke-width': 1 }));
+    svg.appendChild(svgEl('line', { x1: COURT.x, y1: COURT.y + half + half * 0.58, x2: COURT.x + COURT.w, y2: COURT.y + half + half * 0.58, stroke: 'rgba(255,255,255,.4)', 'stroke-width': 1 }));
+
+    // слой игроков лежит между площадкой и сеткой, чтобы сетка была «перед» дальней командой
+    const playersLayer = svgEl('g', { class: 'players' });
+    svg.appendChild(playersLayer);
+
+    // ---- сетка ----
     const net = svgEl('g', {});
-    net.appendChild(svgEl('rect', { x: COURT.x - 6, y: COURT.y + half - 5, width: COURT.w + 12, height: 10, fill: 'rgba(255,255,255,.10)' }));
-    for (let i = 0; i <= 40; i++) {
-      const x = COURT.x - 6 + i * ((COURT.w + 12) / 40);
-      net.appendChild(svgEl('line', { x1: x, y1: COURT.y + half - 5, x2: x, y2: COURT.y + half + 5, stroke: 'rgba(255,255,255,.28)', 'stroke-width': 0.5 }));
+    net.appendChild(svgEl('rect', { x: COURT.x - 6, y: COURT.y + half - 5, width: COURT.w + 12, height: 10, fill: 'rgba(255,255,255,.07)' }));
+    for (let i = 0; i <= 44; i++) {
+      const x = COURT.x - 6 + i * ((COURT.w + 12) / 44);
+      net.appendChild(svgEl('line', { x1: x, y1: COURT.y + half - 5, x2: x, y2: COURT.y + half + 5, stroke: 'rgba(255,255,255,.26)', 'stroke-width': 0.5 }));
     }
     net.appendChild(svgEl('line', { x1: COURT.x - 6, y1: COURT.y + half - 5, x2: COURT.x + COURT.w + 6, y2: COURT.y + half - 5, stroke: '#fff', 'stroke-width': 2 }));
+    [COURT.x - 6, COURT.x + COURT.w + 6].forEach((x) => {
+      net.appendChild(svgEl('rect', { x: x - 1, y: COURT.y + half - 9, width: 2, height: 18, rx: 1, fill: '#cbd5e1' }));
+    });
     svg.appendChild(net);
 
-    // тень мяча и сам мяч
+    // ---- мяч ----
     const shadow = svgEl('ellipse', { cx: -20, cy: -20, rx: 5, ry: 2.2, fill: 'rgba(0,0,0,.35)' });
-    const ball = svgEl('circle', { cx: -20, cy: -20, r: 4.2, fill: '#fff', stroke: '#c2620f', 'stroke-width': 1.2 });
+    const ball = svgEl('g', { class: 'ball' });
+    ball.appendChild(svgEl('circle', { cx: 0, cy: 0, r: 4.4, fill: '#fff8ec', stroke: '#c2620f', 'stroke-width': 1.1 }));
+    ball.appendChild(svgEl('path', { d: 'M-4.4 0a5 5 0 004.4 4.4', fill: 'none', stroke: '#c2620f', 'stroke-width': 0.8 }));
+    ball.setAttribute('transform', 'translate(-20 -20)');
     svg.appendChild(shadow);
     svg.appendChild(ball);
 
-    // игроки: группы с плавным переездом между зонами
+    // ---- фигурки игроков ----
     const dots = {};
-    const mkDot = (player, top) => {
-      const g = svgEl('g', { class: 'pdot' });
-      const isLibero = player.role === 'L';
-      g.appendChild(svgEl('circle', {
-        r: 9.4, fill: isLibero ? '#fde047' : (top ? '#2dd4bf' : '#ff9f1c'),
-        stroke: 'rgba(0,0,0,.35)', 'stroke-width': 1, class: 'pdot-body',
-      }));
-      g.appendChild(svgEl('text', { y: 3.2, 'text-anchor': 'middle', 'font-size': 8.4, 'font-weight': 700, fill: '#12203a' }, ROLES[player.role].short));
+    const numbers = {};
+    let nHome = 1, nAway = 1;
+    const mkFigure = (player, top) => {
+      const kit = top ? '#2dd4bf' : '#ff9f1c';
+      const dark = top ? '#0b3b37' : '#3a2404';
+      const num = player.role === 'L' ? (top ? 17 : 18) : (top ? nAway++ : nHome++);
+      numbers[player.id] = num;
+      const skin = SKIN[Math.floor(rng.next() * SKIN.length)];
+      const g = playerFigure(player, player.role === 'L' ? '#fde047' : kit, dark, num, skin);
       g.appendChild(svgEl('text', {
-        y: top ? 18 : -13, 'text-anchor': 'middle', 'font-size': 7, fill: '#eaf0ff',
-        stroke: 'rgba(6,10,20,.85)', 'stroke-width': 2.2, 'paint-order': 'stroke fill',
-      }, player.last.slice(0, 11)));
-      svg.appendChild(g);
+        x: 0, y: 8.4, 'text-anchor': 'middle', 'font-size': 6.4, fill: '#eaf0ff',
+        stroke: 'rgba(6,10,20,.85)', 'stroke-width': 2, 'paint-order': 'stroke fill',
+      }, player.last.slice(0, 10)));
+      playersLayer.appendChild(g);
       dots[player.id] = g;
       return g;
     };
     [[live ? live.opp : null, true], [live ? live.me : null, false]].forEach(([side, top]) => {
       if (!side) return;
-      side.order.concat(side.libero ? [side.libero] : []).forEach((p) => mkDot(p, top));
-      side.bench.forEach((p) => { if (!dots[p.id]) mkDot(p, top); });
+      side.order.concat(side.libero ? [side.libero] : []).forEach((p) => mkFigure(p, top));
+      side.bench.forEach((p) => { if (!dots[p.id]) mkFigure(p, top); });
     });
 
-    return { svg, dots, ball, shadow, boards, crowd, reduce, texts: boardTexts(game, homeClub, away), boardIndex: 0 };
+    return {
+      svg, dots, numbers, ball, shadow, boards, crowd, reduce, playersLayer,
+      texts: boardTexts(game, homeClub, away), boardIndex: 0,
+    };
   }
 
-  /** расставить игроков по текущей ротации (анимация — через CSS-переход) */
+  /** расставить фигурки по текущей ротации; ближние рисуются поверх дальних */
   function placePlayers() {
     const c = live.court, m = live.match;
     const seen = {};
+    const order = [];
     [[live.opp, true], [live.me, false]].forEach(([side, top]) => {
       side.onCourt().forEach((slot) => {
         const g = c.dots[slot.player.id];
@@ -303,72 +407,122 @@
           g.style.transition = '';
         }
         g.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ')');
-        g.style.opacity = '1';
         const serving = m.serving === side && slot.zone === 1;
-        g.querySelector('.pdot-body').setAttribute('stroke', serving ? '#fff' : 'rgba(0,0,0,.35)');
-        g.querySelector('.pdot-body').setAttribute('stroke-width', serving ? 2.2 : 1);
+        g.classList.toggle('serving', serving);
         seen[slot.player.id] = true;
+        order.push({ g, y });
       });
     });
-    // запасные ждут за пределами площадки
+    // порядок отрисовки по глубине: кто ближе к зрителю, тот сверху
+    order.sort((a, b) => a.y - b.y).forEach((o) => c.playersLayer.appendChild(o.g));
     Object.keys(c.dots).forEach((id) => {
       if (seen[id]) return;
       c.dots[id].style.display = 'none';
     });
   }
 
+  /** поза на розыгрыш: атака и блок — в прыжке, подающий — с поднятыми руками */
+  function poseFigures(ev) {
+    const c = live.court;
+    if (!c || c.reduce) return;
+    clearTimeout(live.poseTimer);
+    Object.keys(c.dots).forEach((id) => c.dots[id].classList.remove('jump', 'reach'));
+    const mark = (player, cls) => {
+      if (!player) return;
+      const g = c.dots[player.id];
+      if (g) g.classList.add(cls);
+    };
+    mark(ev.attacker, 'jump');
+    mark(ev.blocker, 'jump');
+    mark(ev.server, 'reach');
+    mark(ev.digger, 'reach');
+    live.poseTimer = setTimeout(() => {
+      Object.keys(c.dots).forEach((id) => c.dots[id].classList.remove('jump', 'reach'));
+    }, 620);
+  }
+
   /** полёт мяча по дуге между двумя точками */
   function flyBall(from, to, ms) {
     const c = live.court;
     if (!from || !to) return;
-    if (c.reduce) {
-      c.ball.setAttribute('cx', to[0]); c.ball.setAttribute('cy', to[1]);
-      c.shadow.setAttribute('cx', to[0]); c.shadow.setAttribute('cy', to[1] + 6);
-      return;
-    }
-    const mid = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2 - 34];
+    const put = (x, y, scale) => {
+      c.ball.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') scale(' + scale.toFixed(2) + ')');
+      c.shadow.setAttribute('cx', x.toFixed(1));
+      c.shadow.setAttribute('cy', (y + 3).toFixed(1));
+    };
+    if (c.reduce) { put(to[0], to[1] - 8, 1); return; }
+    const lift = 26 + Math.min(34, Math.abs(from[1] - to[1]) * 0.32);
+    const mid = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2 - lift - 14];
     const t0 = performance.now();
     if (live.ballRaf) cancelAnimationFrame(live.ballRaf);
     const step = (now) => {
       const t = Math.min(1, (now - t0) / ms);
       const inv = 1 - t;
       const x = inv * inv * from[0] + 2 * inv * t * mid[0] + t * t * to[0];
-      const y = inv * inv * from[1] + 2 * inv * t * mid[1] + t * t * to[1];
-      c.ball.setAttribute('cx', x.toFixed(1));
-      c.ball.setAttribute('cy', y.toFixed(1));
-      c.ball.setAttribute('r', (4.2 + Math.sin(t * Math.PI) * 1.6).toFixed(1));
-      c.shadow.setAttribute('cx', x.toFixed(1));
-      c.shadow.setAttribute('cy', (inv * from[1] + t * to[1] + 7).toFixed(1));
-      c.shadow.setAttribute('rx', (5 - Math.sin(t * Math.PI) * 1.6).toFixed(1));
+      const y = inv * inv * (from[1] - 14) + 2 * inv * t * mid[1] + t * t * (to[1] - 8);
+      put(x, y, 1 + Math.sin(t * Math.PI) * 0.35);
+      c.shadow.setAttribute('cy', (inv * from[1] + t * to[1] + 1).toFixed(1));
+      c.shadow.setAttribute('rx', (5 - Math.sin(t * Math.PI) * 1.8).toFixed(1));
+      c.ball.style.setProperty('--spin', (t * 540).toFixed(0) + 'deg');
       if (t < 1) live.ballRaf = requestAnimationFrame(step);
     };
     live.ballRaf = requestAnimationFrame(step);
   }
 
-  /** вспышка трибун на очко */
+  /** трибуны вскакивают на очко */
   function crowdFlash(mine, strength) {
     const c = live.court;
     if (c.reduce) return;
-    const pick = Math.round(c.crowd.length * (0.25 + strength * 0.4));
+    const pick = Math.round(c.crowd.length * (0.3 + strength * 0.45));
     for (let i = 0; i < pick; i++) {
-      const dot = c.crowd[Math.floor(Math.random() * c.crowd.length)];
-      if (!dot) continue;
-      dot.classList.remove('cheer');
-      void dot.getBoundingClientRect();
-      dot.style.setProperty('--cheer', mine ? '#ffd166' : '#8fa3c8');
-      dot.classList.add('cheer');
-      setTimeout(() => dot.classList.remove('cheer'), 700);
+      const fan = c.crowd[Math.floor(Math.random() * c.crowd.length)];
+      if (!fan) continue;
+      fan.classList.remove('cheer');
+      void fan.getBoundingClientRect();
+      fan.style.setProperty('--delay', (Math.random() * 0.18).toFixed(2) + 's');
+      fan.classList.add('cheer');
+      setTimeout(() => fan.classList.remove('cheer'), 900);
     }
   }
 
-  /** реклама на бортах меняется по ходу матча */
+  /** вспышка LED-панелей на важное очко */
+  function ledFlash() {
+    const c = live.court;
+    if (!c || c.reduce) return;
+    c.boards.forEach((b) => {
+      b.g.classList.remove('flash');
+      void b.g.getBoundingClientRect();
+      b.g.classList.add('flash');
+      setTimeout(() => b.g.classList.remove('flash'), 620);
+    });
+  }
+
+  /** бегущая строка: текст едет по панели и уходит за край, следом идёт копия */
   function rotateBoards() {
     const c = live.court;
     if (!c || !c.texts.length) return;
-    c.boards.forEach((t, i) => {
-      const next = c.texts[(c.boardIndex + i) % c.texts.length];
-      t.style.opacity = '0';
-      setTimeout(() => { t.textContent = next; t.style.opacity = '1'; }, 220);
+    c.boards.forEach((b, i) => {
+      const text = c.texts[(c.boardIndex + i) % c.texts.length];
+      b.t1.textContent = text;
+      b.t2.textContent = text;
+      let w = 0;
+      try { w = b.t1.getComputedTextLength(); } catch (e) { w = text.length * 4.4; }
+      const gap = Math.max(26, b.w * 0.35);
+      const span = w + gap;
+      b.t1.setAttribute('x', b.x);
+      b.t2.setAttribute('x', b.x + span);
+      if (c.reduce) {
+        b.track.style.animation = 'none';
+        b.t1.setAttribute('x', b.x + Math.max(0, (b.w - w) / 2));
+        b.t2.textContent = '';
+        return;
+      }
+      b.track.style.setProperty('--led-to', (-span) + 'px');
+      b.track.style.setProperty('--led-dur', (span / 14).toFixed(1) + 's');
+      // перезапуск анимации, чтобы новая надпись поехала с начала
+      b.track.style.animation = 'none';
+      void b.track.getBoundingClientRect();
+      b.track.style.animation = '';
     });
     c.boardIndex = (c.boardIndex + c.boards.length) % c.texts.length;
   }
@@ -404,10 +558,12 @@
     }
     const speed = SPEED[live.speed] || 750;
     flyBall(from, to, Math.max(220, Math.min(620, speed * 0.62)));
+    poseFigures(ev);
     const rec = step.record;
     const mine = (rec.winner === 'h') === live.isHome;
     const big = Math.max(rec.h, rec.a) >= live.match.target - 2;
     crowdFlash(mine, big ? 1 : 0.55);
+    if (big || rec.reason === 'ace' || rec.reason === 'block') ledFlash();
   }
 
   /* ---------- комментарий ---------- */
