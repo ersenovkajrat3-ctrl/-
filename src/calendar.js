@@ -446,6 +446,27 @@
     });
 
     S.Transfers.aiOffseason(game);
+
+    // лето: сборные разыгрывают свой турнир
+    const nat = S.National.run(game);
+    report.national = nat;
+    if (playerClub) {
+      const mine = nat.squad.filter((x) => {
+        const p = game.players[x.id];
+        return p && p.clubId === playerClub.id;
+      });
+      game.inbox.unshift({
+        week: 0, kind: 'national',
+        text: nat.tournament + ': сборная — ' + (nat.medal ? nat.medal.toUpperCase() : (nat.stage || 'групповой этап')) +
+          '. Чемпион: ' + nat.champion + '.' + (mine.length ? ' От клуба вызывали: ' + mine.map((x) => x.name).join(', ') + '.' : ''),
+      });
+      if (nat.medal === 'золото' && mine.length) {
+        Sn.queueCeremony(game, {
+          type: 'national', title: nat.tournament, subtitle: 'Сборная — чемпион', clubId: playerClub.id,
+        });
+      }
+    }
+
     game.season++;
     game.stats.seasonsPlayed++;
     game.phase = 'preseason';

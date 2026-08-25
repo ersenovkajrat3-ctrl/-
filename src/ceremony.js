@@ -13,6 +13,7 @@
     cup:       { ribbon: 'Обладатель Кубка',        tint: '#e0e7ff' },
     euro:      { ribbon: 'Победитель еврокубка',    tint: '#2dd4bf' },
     promotion: { ribbon: 'Повышение в классе',      tint: '#4ade80' },
+    national:  { ribbon: 'Сборная — чемпион',       tint: '#f2d13c' },
     awards:    { ribbon: 'Итоги сезона',            tint: '#fbbf24' },
   };
 

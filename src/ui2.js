@@ -684,6 +684,85 @@
     }
   };
 
+  /* ================= СБОРНАЯ ================= */
+  UI.screenNational = function (scr) {
+    const g = UI.game;
+    const club = g.clubs[g.playerClubId];
+    const N = S.National;
+    scr.appendChild(UI.pageHeader('Сборная', 'club'));
+
+    const nat = g.national && g.national.last;
+    const next = N.tournamentFor(g.season);
+    if (!nat) {
+      scr.appendChild(h('div', { class: 'card center' },
+        h('div', { class: 'tiny dim', text: 'БЛИЖАЙШИЙ ТУРНИР' }),
+        h('div', { class: 'big', text: next.name }),
+        h('div', { class: 'small muted mt', text: 'Сборные играют летом, между сезонами. Ваши игроки попадут туда сами — по классу.' })));
+      const call = N.callUp(g).slice(0, 8);
+      scr.appendChild(h('div', { class: 'section-title', text: 'Кто в обойме сейчас' }));
+      const box = h('div', { class: 'plist' });
+      call.forEach((p) => box.appendChild(UI.playerRow(p, g.clubs[p.clubId])));
+      scr.appendChild(box);
+      return;
+    }
+
+    const medalColor = { 'золото': 'accent', 'серебро': '', 'бронза': 'warn' }[nat.medal] || '';
+    scr.appendChild(h('div', { class: 'card center' + (nat.medal ? ' next-match' : '') },
+      h('div', { class: 'tiny dim', text: nat.tournament.toUpperCase() + ' · ' + nat.season }),
+      h('div', { class: 'big ' + medalColor, text: nat.medal ? nat.medal.toUpperCase() : (nat.stage || 'групповой этап') }),
+      h('div', { class: 'small muted', text: 'Чемпион: ' + nat.champion + (nat.place ? ' · наше место: ' + nat.place : '') })));
+
+    scr.appendChild(h('div', { class: 'stat-grid mb' },
+      UI.stat(nat.power + '', 'класс состава'),
+      UI.stat(nat.matches.length + '', 'матчей'),
+      UI.stat(nat.matches.filter((m) => m.score[0] > m.score[1]).length + '', 'побед')));
+
+    scr.appendChild(h('div', { class: 'section-title', text: 'Матчи сборной' }));
+    nat.matches.forEach((m) => {
+      const win = m.score[0] > m.score[1];
+      scr.appendChild(h('div', { class: 'card tight' },
+        h('div', { class: 'row between' },
+          h('span', { class: 'grow' },
+            h('div', { class: 'small', text: 'Сборная — ' + m.rival }),
+            h('div', { class: 'tiny dim', text: m.stage + (m.hero ? ' · лучший: ' + m.hero.name + ', ' + m.hero.points + ' очк.' : '') })),
+          h('span', { class: 'pill ' + (win ? 'good' : 'bad'), text: m.score.join(':') }))));
+    });
+
+    scr.appendChild(h('div', { class: 'section-title', text: 'Состав на турнир' }));
+    const ours = nat.squad.filter((x) => {
+      const p = g.players[x.id];
+      return p && p.clubId === club.id;
+    }).length;
+    if (ours) {
+      scr.appendChild(h('div', { class: 'card tight small', text: 'От вашего клуба вызывали ' + ours + ' ' + U.plural(ours, ['игрока', 'игроков', 'игроков']) + ' — это плюс к медийности.' }));
+    }
+    nat.squad.forEach((x) => {
+      const p = g.players[x.id];
+      const mine = p && p.clubId === club.id;
+      scr.appendChild(h('button', {
+        class: 'p-row' + (mine ? ' on' : ''), style: 'width:100%;text-align:left',
+        onclick: () => { if (p) UI.playerCard(p); },
+      },
+        h('span', { class: 'role-badge role-' + x.role, text: ROLES[x.role].short }),
+        h('span', { class: 'grow' },
+          h('div', { class: 'p-name', text: x.name }),
+          h('div', { class: 'p-meta', text: x.club + (p && p.natCaps ? ' · ' + p.natCaps + ' ' + U.plural(p.natCaps, ['матч', 'матча', 'матчей']) + ' за сборную' : '') })),
+        h('span', { class: 'ovr ' + UI.ovrClass(x.ovr), text: x.ovr })));
+    });
+
+    if (g.national.history.length > 1) {
+      scr.appendChild(h('div', { class: 'section-title', text: 'История выступлений' }));
+      g.national.history.forEach((r) => {
+        scr.appendChild(h('div', { class: 'card tight row between' },
+          h('span', { class: 'small grow', text: r.season + ' · ' + r.tournament }),
+          h('span', { class: 'pill' + (r.medal === 'золото' ? ' accent' : r.medal ? ' good' : ''), text: r.medal || r.stage || '—' })));
+      });
+    }
+
+    scr.appendChild(h('div', { class: 'card tight tiny muted mt' },
+      'Следующим летом — ' + next.name + '. В сборную попадают игроки лиги и те, кого вы продали за рубеж: класс важнее прописки.'));
+  };
+
   /* ================= КАРЬЕРА И ВИТРИНА ТРОФЕЕВ ================= */
   const TROPHY_KINDS = [
     { match: (n) => n.indexOf('Лига чемпионов') === 0, label: 'Лига чемпионов CEV', tint: '#2dd4bf' },

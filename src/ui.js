@@ -131,6 +131,49 @@
       h('div', { class: 'tb-week', text: g.week ? 'неделя ' + g.week + ' · ' + U.dateLabel(g.week * 7) : (g.phase === 'offseason' ? 'межсезонье' : 'предсезон') })));
   }
 
+  /* ---------- бегущая строка ---------- */
+  /** Результаты сборной идут лентой под шапкой — как табло на арене. */
+  function ticker() {
+    const g = UI.game;
+    const box = document.getElementById('ticker');
+    const nat = g.national && g.national.last;
+    const items = [];
+    if (nat) items.push(...nat.ticker);
+    // между турнирами в строке живёт лига
+    const club = g.clubs[g.playerClubId];
+    const div = g.divisions[club.division];
+    const order = W.sortTable(div);
+    if (order.length) {
+      items.push({ kind: 'league', text: DIVISIONS[club.division].short + ': лидер — ' + g.clubs[order[0]].name.toUpperCase() });
+      const pos = order.indexOf(club.id) + 1;
+      items.push({ kind: 'league', text: club.name.toUpperCase() + ' — ' + pos + '-е место' });
+    }
+    if (g.national && g.national.history.length) {
+      const next = S.National.tournamentFor(g.season);
+      items.push({ kind: 'next', text: 'Следующим летом — ' + next.name });
+    }
+    if (!items.length) { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = '';
+    const track = h('div', { class: 'ticker-track' });
+    const fill = () => items.forEach((it) => {
+      track.appendChild(h('span', {
+        class: 'ticker-item' + (it.kind === 'medal' ? ' medal' : it.good === true ? ' good' : it.good === false ? ' bad' : ''),
+        text: it.text,
+      }));
+      track.appendChild(h('i', { class: 'ticker-sep', text: '◆' }));
+    });
+    fill(); fill();                      // вторая копия — чтобы лента шла без разрыва
+    const btn = h('button', {
+      class: 'ticker-wrap', onclick: () => UI.go('national'), 'aria-label': 'Сборная',
+    }, track);
+    box.appendChild(btn);
+    // длительность зависит от длины текста, иначе короткая лента летит слишком быстро
+    const chars = items.reduce((n, it) => n + it.text.length + 3, 0);
+    track.style.setProperty('--ticker-dur', Math.max(18, Math.round(chars / 6)) + 's');
+  }
+  UI.ticker = ticker;
+
   function tabbar() {
     const bar = document.getElementById('tabbar');
     bar.hidden = false;
@@ -176,12 +219,13 @@
     scr.innerHTML = '';
     if (!g || !g.playerClubId) return;
     topbar();
+    ticker();
     tabbar();
     const map = {
       club: screenClub, squad: screenSquad, matches: UI.screenMatches,
       market: UI.screenMarket, feed: UI.screenFeed, arena: UI.screenArena,
       sponsors: UI.screenSponsors, finance: UI.screenFinance, settings: screenSettings, fans: UI.screenFans,
-      inbox: screenInbox, history: UI.screenHistory,
+      inbox: screenInbox, history: UI.screenHistory, national: UI.screenNational,
     };
     (map[UI.tab] || screenClub)(scr);
   };
@@ -324,7 +368,7 @@
 
     scr.appendChild(h('div', { class: 'section-title', text: 'Управление клубом' }));
     const grid = h('div', { class: 'btn-row', style: 'flex-wrap:wrap;gap:8px' });
-    [['Трибуны', 'fans'], ['Арена', 'arena'], ['Спонсоры', 'sponsors'], ['Финансы', 'finance'], ['Настройки', 'settings']].forEach(([label, tab]) => {
+    [['Трибуны', 'fans'], ['Арена', 'arena'], ['Спонсоры', 'sponsors'], ['Финансы', 'finance'], ['Сборная', 'national'], ['Настройки', 'settings']].forEach(([label, tab]) => {
       grid.appendChild(h('button', { class: 'btn', style: 'flex:1 1 44%', onclick: () => UI.go(tab) }, label));
     });
     scr.appendChild(grid);
