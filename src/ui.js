@@ -157,10 +157,12 @@
     box.innerHTML = '';
     const track = h('div', { class: 'ticker-track' });
     const fill = () => items.forEach((it) => {
-      track.appendChild(h('span', {
+      const node = h('span', {
         class: 'ticker-item' + (it.kind === 'medal' ? ' medal' : it.good === true ? ' good' : it.good === false ? ' bad' : ''),
-        text: it.text,
-      }));
+      });
+      if (it.flag) node.appendChild(S.Flags.svg(it.flag, 16));
+      node.appendChild(h('span', { text: it.text }));
+      track.appendChild(node);
       track.appendChild(h('i', { class: 'ticker-sep', text: '◆' }));
     });
     fill(); fill();                      // вторая копия — чтобы лента шла без разрыва
@@ -598,7 +600,9 @@
           h('div', null,
             h('span', { class: 'pill accent', text: ROLES[p.role].name }),
             h('span', { class: 'pill', style: 'margin-left:6px', text: p.age + ' лет' }),
-            p.foreign ? h('span', { class: 'pill teal', style: 'margin-left:6px', text: S.LANG_FLAG[p.lang] }) : null),
+            h('span', { class: 'pill', style: 'margin-left:6px' },
+              S.Flags.byLang(p.lang, 15),
+              h('span', { style: 'margin-left:5px', text: S.LANG_FLAG[p.lang] || 'RUS' }))),
           h('span', { class: 'ovr ' + ovrClass(P.overall(p)), style: 'width:44px;height:38px;font-size:17px', text: P.overall(p) })),
         club ? h('div', { class: 'small muted mb', text: 'Клуб: ' + club.name })
           : p.abroadClub ? h('div', { class: 'small muted mb' }, 'Клуб: ',

@@ -174,7 +174,9 @@
       const t = Sn.team(g, id);
       body.appendChild(h('tr', { class: id === club.id ? 'me' : '' },
         h('td', { text: i + 1 }),
-        h('td', { class: 'name', text: t.name + (t.code ? ' · ' + t.code : '') }),
+        h('td', { class: 'name' }, h('span', { class: 'row', style: 'gap:6px' },
+          t.country ? S.Flags.byNation(t.country, 16) : (t.identity ? UI.crest(t, 18) : null),
+          h('span', { class: 'ellipsis', text: t.name }))),
         h('td', { text: r.p }), h('td', { text: r.w }),
         h('td', { text: r.setsW + ':' + r.setsL }), h('td', null, h('b', { text: r.pts }))));
     });
@@ -709,8 +711,12 @@
     const medalColor = { 'золото': 'accent', 'серебро': '', 'бронза': 'warn' }[nat.medal] || '';
     scr.appendChild(h('div', { class: 'card center' + (nat.medal ? ' next-match' : '') },
       h('div', { class: 'tiny dim', text: nat.tournament.toUpperCase() + ' · ' + nat.season }),
-      h('div', { class: 'big ' + medalColor, text: nat.medal ? nat.medal.toUpperCase() : (nat.stage || 'групповой этап') }),
-      h('div', { class: 'small muted', text: 'Чемпион: ' + nat.champion + (nat.place ? ' · наше место: ' + nat.place : '') })));
+      h('div', { class: 'row', style: 'justify-content:center;gap:10px;margin:4px 0' },
+        S.Flags.byNation(N.HOME, 34),
+        h('div', { class: 'big ' + medalColor, text: nat.medal ? nat.medal.toUpperCase() : (nat.stage || 'групповой этап') })),
+      h('div', { class: 'row small muted', style: 'justify-content:center;gap:6px' },
+        h('span', { text: 'Чемпион:' }), S.Flags.byNation(nat.champion, 18), h('span', { text: nat.champion }),
+        nat.place ? h('span', { class: 'dim', text: '· наше место: ' + nat.place }) : null)));
 
     scr.appendChild(h('div', { class: 'stat-grid mb' },
       UI.stat(nat.power + '', 'класс состава'),
@@ -722,6 +728,7 @@
       const win = m.score[0] > m.score[1];
       scr.appendChild(h('div', { class: 'card tight' },
         h('div', { class: 'row between' },
+          S.Flags.byNation(m.rival, 24),
           h('span', { class: 'grow' },
             h('div', { class: 'small', text: 'Сборная — ' + m.rival }),
             h('div', { class: 'tiny dim', text: m.stage + (m.hero ? ' · лучший: ' + m.hero.name + ', ' + m.hero.points + ' очк.' : '') })),

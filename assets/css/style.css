@@ -87,6 +87,9 @@ a { color: var(--accent); }
 }
 .crest-wrap.crest { background: none; box-shadow: none; border-radius: 0; }
 .crest-svg { display: block; }
+.flag { display: block; flex: 0 0 auto; border-radius: 2px; }
+.ticker-item { display: inline-flex; align-items: center; gap: 6px; }
+.pill .flag { margin-right: 0; }
 .row-crest { flex: 0 0 auto; }
 .topbar .tb-main { flex: 1; min-width: 0; }
 .topbar .tb-club { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

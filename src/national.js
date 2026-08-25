@@ -278,21 +278,25 @@
   /* ---------- бегущая строка ---------- */
   function buildTicker(game, report) {
     const items = [];
-    items.push({ kind: 'head', text: report.tournament + ' · ' + report.season });
+    const home = nationBy(HOME);
+    items.push({ kind: 'head', flag: home.code, text: report.tournament + ' · ' + report.season });
     report.matches.forEach((m) => {
+      const rival = nationBy(m.rival);
       items.push({
         kind: 'match',
+        flag: rival ? rival.code : null,
         text: 'СБОРНАЯ ' + m.score.join(':') + ' ' + m.rival.toUpperCase() + ' · ' + m.stage +
           (m.hero ? ' · ' + m.hero.name + ' — ' + m.hero.points + ' очк.' : ''),
         good: m.score[0] > m.score[1],
       });
     });
     if (report.medal) {
-      items.push({ kind: 'medal', text: 'СБОРНАЯ БЕРЁТ ' + report.medal.toUpperCase() + ' НА ' + report.short + '!', good: true });
+      items.push({ kind: 'medal', flag: home.code, text: 'СБОРНАЯ БЕРЁТ ' + report.medal.toUpperCase() + ' НА ' + report.short + '!', good: true });
     } else {
-      items.push({ kind: 'out', text: 'Сборная закончила турнир на стадии «' + (report.stage || 'групповой этап') + '»' });
+      items.push({ kind: 'out', flag: home.code, text: 'Сборная закончила турнир на стадии «' + (report.stage || 'групповой этап') + '»' });
     }
-    items.push({ kind: 'champ', text: 'Чемпион: ' + report.champion.toUpperCase() });
+    const champ = nationBy(report.champion);
+    items.push({ kind: 'champ', flag: champ ? champ.code : null, text: 'Чемпион: ' + report.champion.toUpperCase() });
     return items;
   }
 
