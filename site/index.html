@@ -769,9 +769,10 @@
 
   /* ---------------------------------------------------------------
      СЦЕНА В ГЕРОЕ
-     Кадр раскладывается на частицы, они разлетаются и собираются
-     в следующий кадр. Чередуются живая съёмка и AI-работа — это и есть
-     то, чем занимается Женя.
+     В покое кадр показывается как есть, в полном разрешении. На переходе
+     поверх него проявляется слой частиц: они разлетаются волной по
+     диагонали, уходя в индиго, и собираются в следующий кадр.
+     Чередуются AI-работа и живая съёмка — это и есть то, чем занимается Женя.
   ----------------------------------------------------------------*/
   (function stage(){
     var canvas = document.getElementById("heroCanvas");
@@ -784,10 +785,14 @@
       ["images/hero/04.jpg", "классический кадр"]
     ];
 
-    var COLS = 72, ROWS = 90, N = COLS * ROWS;
-    var BW = COLS * 2, BH = ROWS * 2;  /* буфер: на каждую частицу ровно 2x2 пикселя */
-    var HOLD = 2600, MORPH = 1900;     /* кадр держится, затем перелёт */
+    /* на узких экранах частиц вдвое меньше: канвас там всё равно мелкий,
+       а считать 22 тысячи точек на телефоне незачем */
+    var dense = !window.matchMedia || window.matchMedia("(min-width: 760px)").matches;
+    var COLS = dense ? 132 : 88, ROWS = dense ? 165 : 110, N = COLS * ROWS;
+    var BW = COLS * 2, BH = ROWS * 2;  /* на каждую частицу ровно 2x2 пикселя буфера */
+    var HOLD = 2800, MORPH = 2000;     /* кадр держится, затем перелёт */
     var WAVE = 0.45;                   /* доля перелёта, за которую волна проходит кадр */
+    var FADE = 0.10;                   /* на этой доле слой частиц проявляется и гаснет */
 
     var ctx = canvas.getContext("2d");
     var kindEl = document.getElementById("heroKind");
@@ -815,11 +820,21 @@
     sampler.width = COLS; sampler.height = ROWS;
     var sctx = sampler.getContext("2d", {willReadFrequently: true});
 
-    /* сетка «домашних» точек и случайный разлёт для каждой частицы */
+    /* сетка «домашних» точек, разлёт и задержка вылета для каждой частицы */
     var homeX = new Float32Array(N), homeY = new Float32Array(N);
     var blowX = new Float32Array(N), blowY = new Float32Array(N);
-    var wob   = new Float32Array(N);
-    var wave  = new Float32Array(N);   /* задержка вылета: волна идёт по диагонали */
+    var wob   = new Uint8Array(N);     /* фаза дрожания: индекс в таблице, а не радианы */
+    var wave  = new Float32Array(N);
+
+    /* синус разлёта заранее посчитан на 256 шагов: 22 тысячи вызовов Math.sin
+       на кадр съедали заметную часть бюджета */
+    var SPR = new Float32Array(256);
+    for(var q = 0; q < 256; q++){
+      var v = Math.sin(q / 255 * Math.PI);
+      SPR[q] = v * v;
+    }
+    var WOBN = 64;
+    var wsin = new Float32Array(WOBN), wcos = new Float32Array(WOBN);
     var i = 0;
     for(var r = 0; r < ROWS; r++){
       for(var c = 0; c < COLS; c++){
@@ -829,20 +844,19 @@
         var d = Math.sqrt(dx * dx + dy * dy) || 1;
         var swirl = 0.55 + Math.random() * 0.9;
         /* разлёт по касательной к центру: получается лёгкий вихрь */
-        blowX[i] = (-dy / d) * 18 * swirl + (Math.random() - 0.5) * 34;
-        blowY[i] = ( dx / d) * 18 * swirl + (Math.random() - 0.5) * 34;
-        wob[i] = Math.random() * Math.PI * 2;
+        blowX[i] = (-dy / d) * 32 * swirl + (Math.random() - 0.5) * 60;
+        blowY[i] = ( dx / d) * 32 * swirl + (Math.random() - 0.5) * 60;
+        wob[i] = (Math.random() * WOBN) | 0;
         wave[i] = (hx / BW * 0.6 + hy / BH * 0.4) * WAVE + Math.random() * 0.05;
         i++;
       }
     }
 
-    var palettes = [];   /* по кадру: Uint8ClampedArray(N*3) */
-    var ready = 0;
+    var images = [], palettes = [], ready = 0;
 
     function sample(img){
-      var s = Math.max(COLS / img.width, ROWS / img.height);
-      var w = img.width * s, h = img.height * s;
+      var s = Math.max(COLS / img.naturalWidth, ROWS / img.naturalHeight);
+      var w = img.naturalWidth * s, h = img.naturalHeight * s;
       sctx.clearRect(0, 0, COLS, ROWS);
       sctx.drawImage(img, (COLS - w) / 2, (ROWS - h) / 2, w, h);
       var px = sctx.getImageData(0, 0, COLS, ROWS).data;
@@ -855,16 +869,36 @@
       return out;
     }
 
+    /* внутреннее разрешение канваса — под плотность экрана, но не больше двух */
+    function fit(){
+      var box = canvas.getBoundingClientRect();
+      if(!box.width) return;
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      var w = Math.round(box.width * dpr), h = Math.round(box.height * dpr);
+      if(canvas.width === w && canvas.height === h) return;
+      canvas.width = w; canvas.height = h;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "medium";
+    }
+
+    function cover(img){
+      var cw = canvas.width, ch = canvas.height;
+      var s = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
+      var w = img.naturalWidth * s, h = img.naturalHeight * s;
+      ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
+    }
+
     var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     SHOTS.forEach(function(shot, n){
       var img = new Image();
       img.onload = function(){
+        images[n] = img;
         try { palettes[n] = sample(img); } catch(e) { palettes[n] = null; }
         if(++ready === SHOTS.length) start();
       };
       img.onerror = function(){
-        palettes[n] = null;
+        images[n] = null; palettes[n] = null;
         if(++ready === SHOTS.length) start();
       };
       img.src = shot[0];
@@ -872,52 +906,56 @@
 
     function start(){
       var live = [];
-      palettes.forEach(function(pal, n){ if(pal) live.push(n); });
-      if(!live.length) return;              /* картинки не дошли — остаётся градиент */
+      palettes.forEach(function(pal, n){ if(pal && images[n]) live.push(n); });
+      if(!live.length) return;              /* кадры не дошли — остаётся градиент рамки */
 
       var at = 0;
       var from = live[0], to = live[live.length > 1 ? 1 : 0];
       var phaseStart = performance.now();
       var named = false;   /* подпись меняется на середине перелёта, вместе с картинкой */
 
+      fit();
+      window.addEventListener("resize", fit);
       label(from);
-      ctx.imageSmoothingEnabled = true;
 
       function label(n){
         if(kindEl) kindEl.textContent = SHOTS[n][1];
         if(idxEl)  idxEl.textContent = "0" + (n + 1);
       }
 
-      function paint(p, t){
+      function particles(p, t){
         var data = frame.data;
         data.set(bg);
         var a = palettes[from], b = palettes[to];
         var span = 1 - WAVE;
-        for(var j = 0; j < N; j++){
-          var px = homeX[j], py = homeY[j];
 
+        for(var q = 0; q < WOBN; q++){
+          var ph = q / WOBN * Math.PI * 2;
+          wsin[q] = Math.sin(t * 0.004 + ph) * 2.6;
+          wcos[q] = Math.cos(t * 0.0035 + ph) * 2.6;
+        }
+
+        for(var j = 0; j < N; j++){
           var lp = (p - wave[j]) / span;
           if(lp < 0) lp = 0; else if(lp > 1) lp = 1;
-          var spread = Math.sin(lp * Math.PI); spread *= spread;
+          var spread = SPR[(lp * 255) | 0];
           var mix = lp < 0.35 ? 0 : lp > 0.65 ? 1 : (lp - 0.35) / 0.3;
 
+          var px = homeX[j], py = homeY[j];
           if(spread > 0.001){
-            px += blowX[j] * spread;
-            py += blowY[j] * spread;
-          }
-          if(spread > 0.001){
-            px += Math.sin(t * 0.004 + wob[j]) * 1.6 * spread;
-            py += Math.cos(t * 0.0035 + wob[j]) * 1.6 * spread;
+            var w = wob[j];
+            px += (blowX[j] + wsin[w]) * spread;
+            py += (blowY[j] + wcos[w]) * spread;
           }
 
-          var x0 = Math.round(px), y0 = Math.round(py);
+          var x0 = (px + 0.5) | 0, y0 = (py + 0.5) | 0;
           if(x0 < 0 || y0 < 0 || x0 >= BW - 1 || y0 >= BH - 1) continue;
 
           var k = j * 3;
           var cr = a[k]     + (b[k]     - a[k])     * mix;
           var cg = a[k + 1] + (b[k + 1] - a[k + 1]) * mix;
           var cb = a[k + 2] + (b[k + 2] - a[k + 2]) * mix;
-          /* на разлёте частицы холодеют — «уход в латентное пространство» */
+          /* на разлёте частицы холодеют — уход в латентное пространство */
           if(spread > 0.001){
             cr += (110 - cr) * spread * 0.6;
             cg += (123 - cg) * spread * 0.6;
@@ -931,7 +969,18 @@
           }
         }
         bctx.putImageData(frame, 0, 0);
+      }
+
+      function paint(p, t){
+        /* снизу всегда лежит целая фотография: в покое кадр не мозаичный */
+        cover(images[p < 0.5 ? from : to]);
+        if(p <= 0 || p >= 1) return;
+
+        particles(p, t);
+        var alpha = Math.min(p, 1 - p) / FADE;
+        ctx.globalAlpha = alpha < 1 ? alpha : 1;
         ctx.drawImage(buf, 0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1;
       }
 
       if(still || live.length === 1){
