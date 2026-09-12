@@ -474,7 +474,7 @@ html {
         </div>
         <a class="tiktok" href="https://www.tiktok.com/@tagan_kazan" target="_blank" rel="noopener">
           <svg class="ic" aria-hidden="true"><use href="#i-tt"></use></svg>
-          <b>190 тыс.</b>
+          <b>190K</b>
           <em>подписчиков в моём фуд-блоге</em>
           <span class="mono">TIKTOK · @TAGAN_KAZAN</span>
         </a>
@@ -525,7 +525,7 @@ html {
           <div class="stat"><b>B2B</b><span>опыт с бизнесом</span></div>
           <div class="stat"><b>Полный цикл</b><span>монтаж видео</span></div>
           <a class="stat" href="https://www.tiktok.com/@tagan_kazan" target="_blank" rel="noopener">
-            <b>190 тыс.</b><span>подписчиков в фуд-блоге</span>
+            <b>190K</b><span>подписчиков в фуд-блоге</span>
           </a>
         </div>
       </div>
@@ -542,7 +542,7 @@ html {
         <div class="tabs" role="tablist" aria-label="Разделы портфолио">
           <button class="tab active" data-tab="aivideo" role="tab" aria-selected="true">AI-видео</button>
           <button class="tab" data-tab="ai" role="tab" aria-selected="false">AI-фото</button>
-		  <button class="tab" data-tab="video" role="tab" aria-selected="false">Классическое видео</button>
+		  <button class="tab" data-tab="video" role="tab" aria-selected="false">Классические видео</button>
           <button class="tab" data-tab="classic" role="tab" aria-selected="false">Классические фото</button>
         </div>
       </div>
@@ -613,11 +613,11 @@ html {
       <b class="mono">СВЯЗЬ</b>
       <a class="with-ic" href="https://t.me/Po_mi_dorka" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-tg"></use></svg>Telegram</a>
       <a class="with-ic" href="https://wa.me/qr/RQPUDX65WRNJM1" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-wa"></use></svg>WhatsApp</a>
-      <a class="with-ic" href="https://www.tiktok.com/@tagan_kazan" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-tt"></use></svg>TikTok · 190 тыс.</a>
+      <a class="with-ic" href="https://www.tiktok.com/@tagan_kazan" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-tt"></use></svg>TikTok · 190K</a>
     </div>
   </div>
   <div class="wrap foot-bar">
-    <span>© 2026 Женя Аверкиева</span>
+    <p>© <span id="current-year"></span> Женя Аверкиева</p>
     <span>Сайт-портфолио</span>
   </div>
 </footer>
@@ -633,6 +633,8 @@ html {
 </div>
 
 <script>
+  var yearEl = document.getElementById('current-year');
+  if(yearEl) yearEl.textContent = new Date().getFullYear();
 (function(){
   "use strict";
 
@@ -674,10 +676,10 @@ html {
          poster:"images/reel-03.jpg", preview:"videos/reel-03-preview.mp4", video:"videos/reel-03.mp4"},
         {title:"Мини-хорор для социальных сетей", dur:"0:34",
          poster:"images/reel-09.jpg", preview:"videos/reel-09-preview.mp4", video:"videos/reel-09.mp4", wide:true},
-        {title:"Ролик «Деревенское утро»", dur:"0:28",
-         poster:"images/reel-17.jpg", preview:"videos/reel-17-preview.mp4", video:"videos/reel-17.mp4"},
-        {title:"Ролик «Грузинский стол»", dur:"0:29",
-         poster:"images/reel-18.jpg", preview:"videos/reel-18-preview.mp4", video:"videos/reel-18.mp4", wide:true}
+        {title:"Ролик «Фудкорт»", dur:"0:29",
+         poster:"images/reel-18.jpg", preview:"videos/reel-18-preview.mp4", video:"videos/reel-18.mp4", wide:true},
+        {title:"Клип «А река течёт»", dur:"0:28",
+         poster:"images/reel-17.jpg", preview:"videos/reel-17-preview.mp4", video:"videos/reel-17.mp4"}
       ]
     },
     ai: {
@@ -686,11 +688,10 @@ html {
       items: [
         {title:"Кадр из короткометражки", img:"images/short-film.jpg", wide:true},
         {title:"Портрет", img:"images/ai-avatar.jpg"},
-        {title:"Сгенерированный образ", img:"images/ai-social.jpg"},
+		{title:"Кадр из мультфильма", img:"images/ai-cartoon.jpg"},
         {title:"Развёртка персонажа: панк-образ", img:"images/turnaround-01.jpg", wide:true},
 		{title:"Развёртка персонажа с сеткой", img:"images/turnaround-grid.jpg", wide:true},
-        {title:"Рекламный кадр", img:"images/ai-ad.jpg"},
-		{title:"Кадр из мультфильма", img:"images/ai-cartoon.jpg"}
+        {title:"Рекламный кадр", img:"images/ai-ad.jpg"}
    
       ]
     },
@@ -723,9 +724,9 @@ html {
          poster:"images/reel-04.jpg", preview:"videos/reel-04-preview.mp4", video:"videos/reel-04.mp4"},
         {title:"Видео-рецепт «Фаршированные перцы»", dur:"1:19",
          poster:"images/reel-16.jpg", preview:"videos/reel-16-preview.mp4", video:"videos/reel-16.mp4", wide:true},
-        {title:"Готовка в казане на живом огне", dur:"1:00",
+        {title:"Reels-рецепт «Чахохбили»", dur:"1:00",
          poster:"images/reel-19.jpg", preview:"videos/reel-19-preview.mp4", video:"videos/reel-19.mp4"},
-        {title:"Сервировка стола на природе", dur:"0:56",
+        {title:"Reels для социальных сетей (фокус с бокалами)", dur:"0:56",
          poster:"images/reel-20.jpg", preview:"videos/reel-20-preview.mp4", video:"videos/reel-20.mp4"}
       ]
     }
