@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Женя Аверкиева — AI Pomidorka</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ink:#14110F;
+    --ink-2:#1D1912;
+    --paper:#EFE9DE;
+    --paper-2:#E4DBC7;
+    --copper:#C1702E;
+    --copper-soft:#D89358;
+    --indigo:#6E7BFF;
+    --indigo-soft:#9AA3FF;
+    --on-ink:#F2EDE3;
+    --on-ink-muted:#A69C8A;
+    --on-paper:#1C1810;
+    --on-paper-muted:#6B6255;
+    --line-ink:rgba(242,237,227,0.14);
+    --line-paper:rgba(28,24,16,0.14);
+    --grain-svg:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;scroll-padding-top:88px;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--on-ink);
+    font-family:'Manrope',system-ui,-apple-system,sans-serif;
+    -webkit-tap-highlight-color:transparent;
+    overflow-x:hidden;
+  }
+  img,svg,video{max-width:100%;height:auto;display:block;}
+  h1,h2,h3{font-family:'Fraunces',Georgia,'Times New Roman',serif;font-weight:500;line-height:1.05;text-wrap:balance;margin:0;}
+  p{margin:0;}
+  a{color:inherit;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,Menlo,monospace;}
+  .wrap{max-width:1180px;margin:0 auto;padding-inline:24px;}
+  @media (max-width:640px){.wrap{padding-inline:20px;}}
+
+  .eyebrow{
+    font-family:'IBM Plex Mono',ui-monospace,monospace;
+    font-size:12.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow::before{content:"";width:22px;height:1px;background:currentColor;opacity:.55;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none!important;transition:none!important;}
+  }
+
+  /* ---------- header ---------- */
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    padding-top:max(0px, env(safe-area-inset-top));
+    background:linear-gradient(to bottom, rgba(20,17,15,.92), rgba(20,17,15,.72) 70%, transparent);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    transition:background .3s ease;
+  }
+  .nav-row{
+    display:flex;align-items:center;justify-content:space-between;
+    padding-block:18px;
+  }
+  .brand{
+    font-family:'Fraunces',serif;font-size:19px;letter-spacing:.01em;
+    color:var(--on-ink);text-decoration:none;font-weight:500;
+  }
+  .brand span{color:var(--copper-soft);}
+  nav.links{display:flex;gap:34px;align-items:center;}
+  nav.links a{
+    font-size:14.5px;text-decoration:none;color:var(--on-ink-muted);
+    transition:color .2s ease;position:relative;
+  }
+  nav.links a:hover{color:var(--on-ink);}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:'Manrope',sans-serif;font-weight:600;font-size:14.5px;
+    padding:12px 22px;border-radius:2px;text-decoration:none;
+    border:1px solid transparent;cursor:pointer;
+    min-height:44px;
+    transition:transform .18s ease, background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--copper);color:#17110A;}
+  @media (hover:hover){.btn-primary:hover{background:var(--copper-soft);}}
+  .btn-ghost-ink{border-color:var(--line-ink);color:var(--on-ink);}
+  @media (hover:hover){.btn-ghost-ink:hover{border-color:var(--on-ink);}}
+  .btn-ghost-paper{border-color:var(--line-paper);color:var(--on-paper);}
+  @media (hover:hover){.btn-ghost-paper:hover{border-color:var(--on-paper);}}
+  .btn-indigo{background:var(--indigo);color:#0E0F1F;}
+  @media (hover:hover){.btn-indigo:hover{background:var(--indigo-soft);}}
+
+  .hamburger{display:none;width:44px;height:44px;border:0;background:none;cursor:pointer;position:relative;flex:none;}
+  @media (max-width:760px){
+    nav.links{display:none;}
+    #headerCta{display:none!important;}
+    .hamburger{display:block;}
+  }
+  .hamburger span{position:absolute;left:11px;right:11px;height:1.5px;background:var(--on-ink);transition:transform .25s ease, opacity .25s ease;}
+  .hamburger span:nth-child(1){top:16px;}
+  .hamburger span:nth-child(2){top:22px;}
+  .hamburger span:nth-child(3){top:28px;}
+  .hamburger.open span:nth-child(1){transform:translateY(6px) rotate(45deg);}
+  .hamburger.open span:nth-child(2){opacity:0;}
+  .hamburger.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
+
+  .mobile-menu{
+    position:fixed;inset:0;z-index:99;background:var(--ink);
+    display:flex;flex-direction:column;justify-content:center;gap:28px;padding:24px;
+    transform:translateX(100%);transition:transform .35s ease;
+  }
+  .mobile-menu.open{transform:translateX(0);}
+  .mobile-menu a{font-family:'Fraunces',serif;font-size:32px;text-decoration:none;color:var(--on-ink);}
+  .mobile-menu .btn{align-self:flex-start;margin-top:12px;}
+  body.menu-open{overflow:hidden;}
+
+  /* ---------- hero ---------- */
+  .hero{
+    position:relative;
+    padding-top:clamp(120px,22vw,168px);
+    padding-bottom:clamp(56px,8vw,88px);
+    background:
+      radial-gradient(120% 90% at 82% -10%, rgba(110,123,255,.16), transparent 60%),
+      radial-gradient(90% 70% at 8% 110%, rgba(193,112,46,.18), transparent 60%),
+      var(--ink);
+    overflow:hidden;
+  }
+  .hero-grid{
+    display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;
+  }
+  @media (max-width:900px){.hero-grid{grid-template-columns:1fr;gap:44px;}}
+
+  .hero h1{font-size:clamp(40px,6.2vw,74px);color:var(--on-ink);}
+  .hero .sub{
+    margin-top:22px;font-size:clamp(16px,1.7vw,18.5px);line-height:1.65;
+    color:var(--on-ink-muted);max-width:46ch;
+  }
+  .hero .eyebrow{color:var(--copper-soft);margin-bottom:18px;}
+  .hero-ctas{display:flex;gap:14px;flex-wrap:wrap;margin-top:34px;}
+
+  /* light-table scan grid */
+  .scan-frame{
+    position:relative;border:1px solid var(--line-ink);padding:14px;
+    background:rgba(255,255,255,.02);
+  }
+  .scan-frame-label{
+    display:flex;justify-content:space-between;font-size:11px;color:var(--on-ink-muted);
+    margin-bottom:10px;letter-spacing:.08em;
+  }
+  .scan-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
+    position:relative;
+  }
+  .scan-grid .cell{
+    position:relative;aspect-ratio:4/5;overflow:hidden;
+    background:linear-gradient(155deg,var(--copper) 0%,#6f3d15 100%);
+  }
+  .scan-grid .cell::before{
+    content:"";position:absolute;inset:0;background:var(--grain-svg);background-size:140px 140px;
+    mix-blend-mode:overlay;opacity:.5;
+  }
+  .scan-grid .cell::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(155deg,var(--indigo) 0%,#242866 100%);
+    opacity:0;
+    animation:reveal-ai 6.4s ease-in-out infinite;
+  }
+  .scan-grid .cell:nth-child(1)::after{animation-delay:0s;}
+  .scan-grid .cell:nth-child(2)::after{animation-delay:.18s;}
+  .scan-grid .cell:nth-child(3)::after{animation-delay:.36s;}
+  .scan-grid .cell:nth-child(4)::after{animation-delay:.5s;}
+  .scan-grid .cell:nth-child(5)::after{animation-delay:.68s;}
+  .scan-grid .cell:nth-child(6)::after{animation-delay:.86s;}
+  .scan-grid .cell:nth-child(7)::after{animation-delay:1.0s;}
+  .scan-grid .cell:nth-child(8)::after{animation-delay:1.18s;}
+  .scan-grid .cell:nth-child(9)::after{animation-delay:1.36s;}
+  @keyframes reveal-ai{
+    0%,38%{opacity:0;}
+    50%,72%{opacity:1;}
+    84%,100%{opacity:0;}
+  }
+  .scan-bar{
+    position:absolute;left:0;right:0;height:2px;
+    background:linear-gradient(90deg, transparent, var(--indigo-soft), var(--copper-soft), transparent);
+    box-shadow:0 0 14px 1px rgba(154,163,255,.6);
+    animation:sweep 6.4s ease-in-out infinite;
+  }
+  @keyframes sweep{
+    0%{top:0%;}
+    50%{top:100%;}
+    100%{top:0%;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .scan-grid .cell::after{animation:none;opacity:.55;}
+    .scan-bar{display:none;}
+  }
+
+  /* ---------- section shells ---------- */
+  section{position:relative;}
+  .on-paper{background:var(--paper);color:var(--on-paper);}
+  .on-ink{background:var(--ink);color:var(--on-ink);}
+  .pad{padding-block:clamp(64px,9vw,120px);}
+
+  .reveal{opacity:1;transform:none;}
+
+  /* ---------- about ---------- */
+  .about-grid{display:grid;grid-template-columns:.62fr 1fr;gap:64px;align-items:start;}
+  @media (max-width:840px){.about-grid{grid-template-columns:1fr;gap:40px;}}
+  .portrait{
+    position:relative;aspect-ratio:3/4;background:linear-gradient(170deg,#DCD2B9,#C7B98F 60%,#B7A87C);
+    border:1px solid var(--line-paper);
+  }
+  .portrait::before{
+    content:"";position:absolute;inset:0;background:var(--grain-svg);background-size:140px 140px;
+    mix-blend-mode:multiply;opacity:.35;
+  }
+  .portrait img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
+  .portrait-cap{
+    display:flex;justify-content:space-between;margin-top:12px;font-size:11px;
+    color:var(--on-paper-muted);letter-spacing:.06em;
+  }
+  .about-copy .eyebrow{color:var(--copper);margin-bottom:20px;}
+  .about-lede{
+    font-family:'Fraunces',serif;font-style:italic;font-weight:500;
+    font-size:clamp(22px,2.6vw,29px);line-height:1.4;color:var(--on-paper);
+    max-width:34ch;
+  }
+  .about-copy p.body{
+    margin-top:24px;font-size:16.5px;line-height:1.75;color:var(--on-paper-muted);
+    max-width:56ch;
+  }
+  .about-stats{
+    display:flex;gap:36px;margin-top:34px;flex-wrap:wrap;
+    padding-top:26px;border-top:1px solid var(--line-paper);
+  }
+  .about-stats .stat b{
+    display:block;font-family:'Fraunces',serif;font-size:26px;color:var(--on-paper);
+  }
+  .about-stats .stat span{font-size:12.5px;color:var(--on-paper-muted);letter-spacing:.04em;}
+
+  /* ---------- portfolio ---------- */
+  .folio-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:40px;}
+  .folio-head .eyebrow{color:var(--indigo-soft);margin-bottom:16px;}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;}
+  .tab{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.03em;
+    padding:11px 18px;border:1px solid var(--line-ink);background:transparent;color:var(--on-ink-muted);
+    cursor:pointer;border-radius:2px;min-height:44px;
+    transition:border-color .2s ease,color .2s ease,background .2s ease;
+  }
+  .tab.active{color:var(--ink);background:var(--on-ink);border-color:var(--on-ink);}
+  @media (hover:hover){.tab:not(.active):hover{color:var(--on-ink);border-color:var(--on-ink-muted);}}
+
+  .folio-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:18px;
+  }
+  @media (max-width:900px){.folio-grid{grid-template-columns:repeat(2,1fr);}}
+  @media (max-width:560px){.folio-grid{grid-template-columns:1fr;}}
+
+  .card{
+    position:relative;cursor:pointer;border:1px solid var(--line-ink);
+    background:var(--ink-2);
+  }
+  .card .tile{position:relative;aspect-ratio:4/5;overflow:hidden;}
+  .card .tile::before{
+    content:"";position:absolute;inset:0;background:var(--grain-svg);background-size:140px 140px;
+    mix-blend-mode:overlay;opacity:.5;z-index:2;
+  }
+  .card .tile .wash{position:absolute;inset:0;}
+  .card .tile .shape{position:absolute;border-radius:50%;filter:blur(2px);opacity:.55;}
+  .card .tile .code{
+    position:absolute;top:10px;left:10px;font-size:10.5px;color:rgba(242,237,227,.85);
+    background:rgba(20,17,15,.35);padding:3px 7px;letter-spacing:.05em;z-index:3;
+  }
+  .card .tile .playtag{
+    position:absolute;bottom:10px;right:10px;width:30px;height:30px;border-radius:50%;
+    background:rgba(20,17,15,.55);display:flex;align-items:center;justify-content:center;z-index:3;
+    transition:transform .3s ease,background .3s ease;
+  }
+  .card .tile .playtag svg{width:11px;height:11px;}
+  .card .tile .dur{
+    position:absolute;bottom:12px;left:10px;z-index:3;font-size:10.5px;letter-spacing:.05em;
+    color:rgba(242,237,227,.9);background:rgba(20,17,15,.5);padding:3px 7px;
+  }
+  .card .tile .media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .card .tile video.media{opacity:0;transition:opacity .35s ease;z-index:1;}
+  .card .tile video.media.playing{opacity:1;}
+  @media (hover:hover){
+    .card:hover .tile .playtag{transform:scale(1.15);background:rgba(20,17,15,.8);}
+    .card:hover .tile{transform:scale(1.035);}
+  }
+  .card .tile{transition:transform .5s cubic-bezier(.2,.8,.2,1);}
+  .card .cap{padding:13px 14px 15px;}
+  .card .cap b{display:block;font-size:14.5px;font-weight:600;color:var(--on-ink);}
+  .card .cap span{display:block;margin-top:3px;font-size:12.5px;color:var(--on-ink-muted);}
+
+  .folio-note{
+    margin-top:26px;font-size:12.5px;color:var(--on-ink-muted);
+    border-left:2px solid var(--line-ink);padding-left:12px;
+  }
+
+  .scanning .tile .wash{animation:tabwave .6s ease;}
+  @keyframes tabwave{
+    0%{filter:brightness(2.4) saturate(0);}
+    100%{filter:none;}
+  }
+
+  /* lightbox */
+  .lightbox{
+    position:fixed;inset:0;z-index:200;background:rgba(10,8,7,.92);
+    display:none;align-items:center;justify-content:center;padding:24px;
+  }
+  .lightbox.open{display:flex;}
+  .lightbox-inner{max-width:720px;width:100%;}
+  .lightbox-tile{position:relative;aspect-ratio:4/5;max-height:70vh;margin:0 auto;overflow:hidden;}
+  .lightbox-tile::before{
+    content:"";position:absolute;inset:0;background:var(--grain-svg);background-size:140px 140px;
+    mix-blend-mode:overlay;opacity:.5;z-index:2;
+  }
+  .lightbox-tile.is-video{aspect-ratio:auto;max-height:none;background:#000;}
+  .lightbox-tile.is-video::before{display:none;}
+  .lightbox-tile.is-video{display:flex;justify-content:center;}
+  .lightbox-tile.is-video video{
+    position:static;width:auto;max-width:100%;max-height:74vh;margin:0 auto;display:block;background:#000;
+  }
+  .lightbox-cap.center{justify-content:center;}
+  .lightbox-inner.wide{max-width:980px;}
+  .lightbox-cap{display:flex;justify-content:space-between;color:var(--on-ink-muted);margin-top:16px;font-size:13px;gap:16px;flex-wrap:wrap;}
+  .lightbox-cap b{color:var(--on-ink);font-weight:600;}
+  .lightbox-close{
+    position:absolute;top:max(18px, env(safe-area-inset-top));right:18px;
+    width:44px;height:44px;border:1px solid var(--line-ink);background:transparent;color:var(--on-ink);
+    cursor:pointer;font-size:18px;border-radius:50%;
+  }
+
+  /* ---------- services ---------- */
+  .services-head{max-width:60ch;}
+  .services-head .eyebrow{color:var(--copper);margin-bottom:18px;}
+  .services-grid{
+    margin-top:48px;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;
+    background:var(--line-paper);border:1px solid var(--line-paper);
+  }
+  @media (max-width:820px){.services-grid{grid-template-columns:1fr;}}
+  .service{background:var(--paper);padding:34px 30px;}
+  .service .tag{
+    font-size:11px;color:var(--copper);background:rgba(193,112,46,.12);
+    display:inline-block;padding:4px 9px;letter-spacing:.08em;
+  }
+  .service.tag-ai .tag{color:var(--indigo);background:rgba(110,123,255,.12);}
+  .service h3{margin-top:16px;font-size:21px;color:var(--on-paper);}
+  .service p{margin-top:10px;font-size:15px;line-height:1.65;color:var(--on-paper-muted);}
+
+  /* ---------- contact ---------- */
+  .contact{
+    background:
+      radial-gradient(90% 120% at 20% 0%, rgba(193,112,46,.20), transparent 55%),
+      radial-gradient(90% 120% at 85% 100%, rgba(110,123,255,.18), transparent 55%),
+      var(--ink);
+    text-align:center;
+  }
+  .contact .eyebrow{justify-content:center;color:var(--on-ink-muted);margin-bottom:22px;}
+  .contact h2{font-size:clamp(30px,5vw,52px);max-width:18ch;margin-inline:auto;color:var(--on-ink);}
+  .contact-ctas{display:flex;gap:14px;justify-content:center;margin-top:38px;flex-wrap:wrap;}
+  .contact-note{margin-top:26px;font-size:12.5px;color:var(--on-ink-muted);}
+  .qr-card{margin:34px auto 0;max-width:200px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .qr-card img{width:100%;height:auto;border-radius:14px;border:1px solid var(--line-ink);display:block;}
+  .qr-card span{font-size:11px;letter-spacing:.08em;color:var(--on-ink-muted);}
+
+  /* ---------- footer ---------- */
+  footer{background:var(--ink-2);border-top:1px solid var(--line-ink);}
+  .foot-grid{
+    padding-block:56px;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:40px;
+  }
+  @media (max-width:720px){.foot-grid{grid-template-columns:1fr;gap:32px;}}
+  .foot-brand{font-family:'Fraunces',serif;font-size:22px;color:var(--on-ink);}
+  .foot-tag{margin-top:12px;font-size:14px;color:var(--on-ink-muted);max-width:32ch;line-height:1.6;}
+  .foot-col b{display:block;font-size:12px;letter-spacing:.08em;color:var(--on-ink-muted);margin-bottom:14px;}
+  .foot-col a{display:block;font-size:14.5px;color:var(--on-ink);text-decoration:none;margin-bottom:10px;}
+  @media (hover:hover){.foot-col a:hover{color:var(--copper-soft);}}
+  .foot-bar{
+    border-top:1px solid var(--line-ink);padding-block:20px;
+    padding-bottom:max(20px, env(safe-area-inset-bottom));
+    display:flex;justify-content:space-between;font-size:12px;color:var(--on-ink-muted);
+    flex-wrap:wrap;gap:8px;
+  }
+
+  input,textarea,select,button{font-family:inherit;}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <clipPath id="blobA" clipPathUnits="objectBoundingBox">
+      <path d="M0.15,0.05 C0.55,-0.05,0.98,0.15,0.95,0.5 C0.92,0.85,0.6,1.02,0.28,0.95 C-0.02,0.88,-0.08,0.55,0.02,0.3 C0.06,0.18,0.08,0.1,0.15,0.05 Z"></path>
+    </clipPath>
+  </defs>
+</svg>
+
+<header id="siteHeader">
+  <div class="wrap nav-row">
+    <a href="#top" class="brand">Женя <span>Аверкиева</span></a>
+    <nav class="links" aria-label="Основная навигация">
+      <a href="#about">Обо мне</a>
+      <a href="#portfolio">Портфолио</a>
+      <a href="#services">Услуги</a>
+      <a href="#contact">Контакты</a>
+    </nav>
+    <a href="#contact" class="btn btn-primary" style="display:none" id="headerCta">Связаться</a>
+    <button class="hamburger" id="hamburger" aria-label="Открыть меню" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#about">Обо мне</a>
+  <a href="#portfolio">Портфолио</a>
+  <a href="#services">Услуги</a>
+  <a href="#contact">Контакты</a>
+  <a href="#contact" class="btn btn-primary">Связаться со мной</a>
+</div>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="eyebrow">AI-креатор · Фотограф</div>
+        <h1>Женя Аверкиева.</h1>
+        <p class="sub">Соединяю классику и нейросети, чтобы создавать образы, которые продают и цепляют.</p>
+        <div class="hero-ctas">
+          <a href="#portfolio" class="btn btn-primary">Смотреть портфолио</a>
+          <a href="#contact" class="btn btn-ghost-ink">Связаться со мной</a>
+        </div>
+      </div>
+      <div>
+        <div class="scan-frame">
+          <div class="scan-frame-label mono">
+            <span>КОНТАКТНЫЙ ЛИСТ / 09</span>
+            <span>ЛАТЕНТНЫЙ РЯД / 09</span>
+          </div>
+          <div class="scan-grid">
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
+            <div class="scan-bar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="on-paper pad" id="about">
+    <div class="wrap about-grid">
+      <div class="reveal">
+        <div class="portrait">
+          <img src="images/about-portrait.jpg" alt="Женя Аверкиева на съёмке" loading="lazy">
+        </div>
+        <div class="portrait-cap mono">
+          <span>ЖЕНЯ АВЕРКИЕВА</span>
+          <span>НА ПЛОЩАДКЕ</span>
+        </div>
+      </div>
+      <div class="about-copy reveal">
+        <div class="eyebrow">Обо мне</div>
+        <p class="about-lede">Я комфортно чувствую себя в нейросетях и работаю с ними как с полноценным инструментом. А классическая фотография дополняет эту работу живым кадром.</p>
+        <p class="body">За моими плечами годы работы с бизнесом (B2B), поэтому я понимаю: креатив должен решать задачи — продавать, вовлекать и цеплять. Для AI-продакшна использую топовые нейросети, а для фото- и видеосъёмки — профессиональная техника и свет. Также беру на себя видеомонтаж с полным циклом: от исходников до готового ролика.</p>
+        <div class="about-stats">
+          <div class="stat"><b>Нейросети</b><span>основной инструмент</span></div>
+          <div class="stat"><b>B2B</b><span>опыт с бизнесом</span></div>
+          <div class="stat"><b>Полный цикл</b><span>монтаж видео</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="on-ink pad" id="portfolio">
+    <div class="wrap">
+      <div class="folio-head">
+        <div>
+          <div class="eyebrow">Портфолио</div>
+          <h2 style="font-size:clamp(28px,4vw,42px)">Работы по направлениям</h2>
+        </div>
+        <div class="tabs" role="tablist" aria-label="Разделы портфолио">
+          <button class="tab active" data-tab="ai" role="tab" aria-selected="true">AI-креатив</button>
+          <button class="tab" data-tab="classic" role="tab" aria-selected="false">Классическая фотография</button>
+          <button class="tab" data-tab="video" role="tab" aria-selected="false">Видео и монтаж</button>
+        </div>
+      </div>
+
+      <div class="folio-grid" id="folioGrid"></div>
+      <p class="folio-note mono" id="folioNote"></p>
+    </div>
+  </section>
+
+  <section class="on-paper pad" id="services">
+    <div class="wrap">
+      <div class="services-head">
+        <div class="eyebrow">Услуги</div>
+        <h2 style="font-size:clamp(28px,4vw,42px)">Что я могу сделать для вашего бренда</h2>
+      </div>
+      <div class="services-grid">
+        <div class="service tag-ai">
+          <span class="tag mono">AI</span>
+          <h3>AI-продакшн</h3>
+          <p>Рекламные ролики, клипы и уникальное AI-фото, сгенерированные под задачи бренда — от идеи до готового кадра.</p>
+        </div>
+        <div class="service">
+          <span class="tag mono">EDIT</span>
+          <h3>Видеомонтаж</h3>
+          <p>Полный цикл работы с реальным видео: обработка отснятого материала, сборка, цветокоррекция — от исходников до готового ролика.</p>
+        </div>
+        <div class="service">
+          <span class="tag mono">FILM</span>
+          <h3>Классический продакшн</h3>
+          <p>Студийные фотосессии: портрет, семья, предметная и фуд-съёмка с профессиональной техникой и светом.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="contact pad" id="contact">
+    <div class="wrap">
+      <div class="eyebrow">Контакты</div>
+      <h2>Готовы оживить ваш бренд или создать уникальный контент?</h2>
+      <div class="contact-ctas">
+        <a href="https://t.me/Po_mi_dorka" target="_blank" rel="noopener" class="btn btn-indigo">Написать в Telegram</a>
+        <a href="https://wa.me/qr/RQPUDX65WRNJM1" target="_blank" rel="noopener" class="btn btn-ghost-ink">Написать в WhatsApp</a>
+      </div>
+      <div class="qr-card">
+        <img src="images/whatsapp-qr.png" alt="QR-код WhatsApp — Евгения Аверкиева" width="220" height="232">
+        <span class="mono">Сканируйте — WhatsApp</span>
+      </div>
+      <p class="contact-note mono">Telegram: @Po_mi_dorka · Email: <a href="mailto:jtaganova@gmail.com" class="mono">jtaganova@gmail.com</a></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot-grid">
+    <div>
+      <div class="foot-brand">Женя Аверкиева</div>
+      <p class="foot-tag">AI-креатор и фотограф. Классическая эстетика и возможности нейросетей — в одном кадре.</p>
+    </div>
+    <div class="foot-col">
+      <b class="mono">РАЗДЕЛЫ</b>
+      <a href="#about">Обо мне</a>
+      <a href="#portfolio">Портфолио</a>
+      <a href="#services">Услуги</a>
+    </div>
+    <div class="foot-col">
+      <b class="mono">СВЯЗЬ</b>
+      <a href="https://t.me/Po_mi_dorka" target="_blank" rel="noopener">Telegram</a>
+      <a href="https://wa.me/qr/RQPUDX65WRNJM1" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+  </div>
+  <div class="wrap foot-bar">
+    <span>© 2026 Женя Аверкиева</span>
+    <span>Сайт-портфолио</span>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose" aria-label="Закрыть">✕</button>
+  <div class="lightbox-inner" id="lightboxInner">
+    <div class="lightbox-tile" id="lightboxTile"></div>
+    <div class="lightbox-cap">
+      <b id="lightboxTitle"></b>
+      <span id="lightboxCode" class="mono"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var playIcon = '<svg viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7L8 5Z" fill="#F2EDE3"/></svg>';
+
+  var shapes = [
+    "circle(38% at 70% 30%)",
+    "circle(42% at 30% 65%)",
+    "ellipse(40% 30% at 60% 60%)",
+    "circle(35% at 50% 40%)",
+    "ellipse(35% 45% at 35% 35%)",
+    "circle(40% at 65% 70%)"
+  ];
+
+  /* ---------------------------------------------------------------
+     КОНТЕНТ ПОРТФОЛИО
+     Чтобы подставить свой ролик — впишите путь к файлу в поле video
+     (например "videos/reel-01.mp4") и, по желанию, обложку в poster
+     ("images/reel-01.jpg"). Пустое поле = стилевая заглушка.
+  ----------------------------------------------------------------*/
+  var data = {
+    ai: {
+      washFrom: "var(--indigo)", washTo: "#242866",
+      note: "Кадры из AI-продакшна: генерация под задачу бренда.",
+      items: [
+        {title:"Портрет, сгенерированный образ", code:"SEED 048213", img:"images/ai-avatar.jpg"},
+        {title:"Рекламный AI-кадр",              code:"SEED 019284", img:"images/ai-ad.jpg"},
+        {title:"Кадр из AI-клипа",               code:"SEED 073310", img:"images/ai-clip.jpg"},
+        {title:"AI-мультфильм, кадр",            code:"SEED 052197", img:"images/ai-cartoon.jpg"},
+        {title:"Короткометражный фильм, кадр",   code:"SEED 031177", img:"images/short-film.jpg"},
+        {title:"AI-клип для соцсетей",           code:"SEED 088420", img:"images/social-clip.jpg"}
+      ]
+    },
+    classic: {
+      washFrom: "var(--copper)", washTo: "#6f3d15",
+      note: "Съёмка на профессиональную технику и студийный свет.",
+      items: [
+        {title:"Портрет, студийный свет", code:"FRAME 15A", img:"images/studio-portrait.jpg"},
+        {title:"Семейная съёмка",         code:"FRAME 16A", img:"images/family-shoot.jpg"},
+        {title:"Портрет, крупный план",   code:"FRAME 19A", img:"images/portrait-closeup.jpg"}
+      ]
+    },
+    video: {
+      washFrom: "var(--copper)", washTo: "var(--indigo)",
+      note: "Наведите курсор — превью начнёт играть. Клик открывает ролик со звуком.",
+      items: [
+        {title:"AI-мультфильм: сцена на пляже", code:"REEL 01", dur:"0:38",
+         poster:"images/reel-01.jpg", preview:"videos/reel-01-preview.mp4", video:"videos/reel-01.mp4"},
+        {title:"Фуд-съёмка: рецептный ролик", code:"REEL 02", dur:"1:00",
+         poster:"images/reel-02.jpg", preview:"videos/reel-02-preview.mp4", video:"videos/reel-02.mp4"},
+        {title:"AI-ролик: вечер в саду", code:"REEL 03", dur:"1:13",
+         poster:"images/reel-03.jpg", preview:"videos/reel-03-preview.mp4", video:"videos/reel-03.mp4"}
+      ]
+    }
+  };
+
+  var grid = document.getElementById("folioGrid");
+  var note = document.getElementById("folioNote");
+  var tabs = document.querySelectorAll(".tab");
+  var lightbox = document.getElementById("lightbox");
+  var lightboxInner = document.getElementById("lightboxInner");
+  var lightboxTile = document.getElementById("lightboxTile");
+  var lightboxTitle = document.getElementById("lightboxTitle");
+  var lightboxCode = document.getElementById("lightboxCode");
+  var lightboxCap = document.querySelector(".lightbox-cap");
+
+  function esc(s){
+    return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function washMarkup(set, idx){
+    return '<div class="wash" style="background:linear-gradient(155deg, ' + set.washFrom + ' 0%, ' + set.washTo + ' 100%)"></div>' +
+           '<div class="shape" style="clip-path:' + shapes[idx % shapes.length] + ';width:70%;height:70%;left:15%;top:15%;background:rgba(255,255,255,.16)"></div>';
+  }
+
+  function tileInner(item, set, idx){
+    var still = item.img || item.poster;
+    var parts = still
+      ? '<img class="media" src="' + esc(still) + '" alt="' + esc(item.title) + '" loading="lazy">'
+      : washMarkup(set, idx);
+
+    if(item.video){
+      /* Превью без звука поверх обложки — стартует при наведении. */
+      parts += '<video class="media preview" muted loop playsinline preload="none" ' +
+               (still ? 'poster="' + esc(still) + '" ' : '') +
+               'src="' + esc(item.preview || item.video) + '"></video>';
+    }
+
+    parts += '<div class="code mono">' + esc(item.code) + '</div>';
+    if(item.video){
+      parts += '<div class="dur mono">' + esc(item.dur || "") + '</div>' +
+               '<div class="playtag">' + playIcon + '</div>';
+    }
+    return parts;
+  }
+
+  function bindPreview(card){
+    var vid = card.querySelector("video.preview");
+    if(!vid) return;
+
+    /* Битый или отсутствующий файл не должен ломать карточку. */
+    vid.addEventListener("error", function(){ vid.remove(); });
+
+    if(!window.matchMedia || !window.matchMedia("(hover:hover)").matches) return;
+    if(window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    card.addEventListener("mouseenter", function(){
+      vid.classList.add("playing");
+      var p = vid.play();
+      if(p && p.catch) p.catch(function(){ vid.classList.remove("playing"); });
+    });
+    card.addEventListener("mouseleave", function(){
+      vid.classList.remove("playing");
+      vid.pause();
+      vid.currentTime = 0;
+    });
+  }
+
+  function bindStillFallback(card, set, idx){
+    var img = card.querySelector("img.media");
+    if(!img) return;
+    img.addEventListener("error", function(){
+      var wash = document.createElement("div");
+      wash.innerHTML = washMarkup(set, idx);
+      while(wash.firstChild) img.parentNode.insertBefore(wash.firstChild, img);
+      img.remove();
+    });
+  }
+
+  function render(tabKey){
+    var set = data[tabKey];
+    grid.innerHTML = "";
+    note.textContent = set.note || "";
+    set.items.forEach(function(item, idx){
+      var card = document.createElement("div");
+      card.className = "card";
+      card.setAttribute("role", "button");
+      card.setAttribute("tabindex", "0");
+      card.innerHTML =
+        '<div class="tile">' + tileInner(item, set, idx) + '</div>' +
+        '<div class="cap"><b>' + esc(item.title) + '</b><span>' + esc(item.code) + '</span></div>';
+      function open(){ openLightbox(item, set, idx); }
+      card.addEventListener("click", open);
+      card.addEventListener("keydown", function(e){
+        if(e.key === "Enter" || e.key === " "){ e.preventDefault(); open(); }
+      });
+      bindPreview(card);
+      bindStillFallback(card, set, idx);
+      grid.appendChild(card);
+    });
+  }
+
+  function openLightbox(item, set, idx){
+    var still = item.img || item.poster;
+
+    if(item.video){
+      lightboxTile.className = "lightbox-tile is-video";
+      lightboxInner.classList.add("wide");
+      lightboxCap.classList.add("center");
+      lightboxTile.innerHTML =
+        '<video controls autoplay playsinline preload="metadata" ' +
+        (still ? 'poster="' + esc(still) + '" ' : '') +
+        'src="' + esc(item.video) + '"></video>';
+    } else {
+      lightboxTile.className = "lightbox-tile";
+      lightboxInner.classList.remove("wide");
+      lightboxCap.classList.remove("center");
+      lightboxTile.innerHTML = still
+        ? '<img src="' + esc(still) + '" alt="' + esc(item.title) + '" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">'
+        : '<div class="wash" style="position:absolute;inset:0;background:linear-gradient(155deg, ' + set.washFrom + ' 0%, ' + set.washTo + ' 100%)"></div>' +
+          '<div class="shape" style="position:absolute;clip-path:' + shapes[idx % shapes.length] + ';width:70%;height:70%;left:15%;top:15%;background:rgba(255,255,255,.16)"></div>';
+    }
+
+    var opened = lightboxTile.querySelector("video");
+    if(opened){
+      var pr = opened.play();
+      if(pr && pr.catch) pr.catch(function(){ /* автозапуск заблокирован — остаётся обложка и кнопка play */ });
+    }
+
+    lightboxTitle.textContent = item.title;
+    lightboxCode.textContent = item.code;
+    lightbox.classList.add("open");
+    document.body.classList.add("menu-open");
+  }
+
+  function closeLightbox(){
+    var v = lightboxTile.querySelector("video");
+    if(v){ v.pause(); v.removeAttribute("src"); v.load(); }
+    lightboxTile.innerHTML = "";
+    lightbox.classList.remove("open");
+    document.body.classList.remove("menu-open");
+  }
+  document.getElementById("lightboxClose").addEventListener("click", closeLightbox);
+  lightbox.addEventListener("click", function(e){ if(e.target === lightbox) closeLightbox(); });
+  document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeLightbox(); });
+
+  tabs.forEach(function(tab){
+    tab.addEventListener("click", function(){
+      tabs.forEach(function(t){ t.classList.remove("active"); t.setAttribute("aria-selected","false"); });
+      tab.classList.add("active");
+      tab.setAttribute("aria-selected","true");
+      grid.classList.add("scanning");
+      render(tab.getAttribute("data-tab"));
+      setTimeout(function(){ grid.classList.remove("scanning"); }, 650);
+    });
+  });
+
+  render("ai");
+
+  /* mobile menu */
+  var hamburger = document.getElementById("hamburger");
+  var mobileMenu = document.getElementById("mobileMenu");
+  hamburger.addEventListener("click", function(){
+    var open = mobileMenu.classList.toggle("open");
+    hamburger.classList.toggle("open", open);
+    hamburger.setAttribute("aria-expanded", open ? "true" : "false");
+    document.body.classList.toggle("menu-open", open);
+  });
+  document.querySelectorAll(".mobile-menu a").forEach(function(a){
+    a.addEventListener("click", function(){
+      mobileMenu.classList.remove("open");
+      hamburger.classList.remove("open");
+      document.body.classList.remove("menu-open");
+    });
+  });
+
+  /* header cta appears after hero */
+  var headerCta = document.getElementById("headerCta");
+  var heroEl = document.querySelector(".hero");
+  if("IntersectionObserver" in window && headerCta && heroEl){
+    var io0 = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        headerCta.style.display = entry.isIntersecting ? "none" : "inline-flex";
+      });
+    }, {threshold:0});
+    io0.observe(heroEl);
+  } else if (headerCta){
+    headerCta.style.display = "inline-flex";
+  }
+})();
+</script>
+
+</body>
+</html>
