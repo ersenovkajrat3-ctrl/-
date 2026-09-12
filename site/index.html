@@ -6,10 +6,14 @@
 <title>Женя Аверкиева — AI Pomidorka</title>
 </head>
 <body>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
+html {
+  scroll-behavior: smooth;
+}
   :root{
     --ink:#14110F;
     --ink-2:#1D1912;
@@ -478,14 +482,18 @@
       <div>
         <div class="stage">
           <div class="stage-label mono">
-            <span id="slideKind">классический кадр</span>
-            <span><b id="slideIdx">01</b> / 03</span>
+            <span id="slideKind">мужской портрет (камера canon)</span>
+            <span><b id="slideIdx">01</b> / 06</span>
           </div>
           <div class="carousel" id="carousel">
             <div class="slides" id="slides">
-              <div class="slide"><img src="images/slides/01.jpg" alt="Классический кадр: студийный портрет" fetchpriority="high"></div>
-              <div class="slide"><img src="images/slides/02.jpg" alt="AI-образ: кадр из клипа"></div>
-              <div class="slide"><img src="images/slides/03.jpg" alt="Кадр из клипа, крупный план"></div>
+              <div class="slide"><img src="images/slides/01.jpg" alt="мужской портрет (камера canon)" fetchpriority="high"></div>
+              <div class="slide"><img src="images/slides/02.jpg" alt="мужской портрет (ai-генерация)"></div>
+			  <div class="slide"><img src="images/slides/03.jpg" alt="женский портрет (камера canon)"></div>
+			  <div class="slide"><img src="images/slides/04.jpg" alt="женский портрет (ai-генерация)"></div>
+			  <div class="slide"><img src="images/slides/05.jpg" alt="детский портрет (камера canon)"></div>
+			  <div class="slide"><img src="images/slides/06.jpg" alt="детский портрет (ai-генерация)"></div>
+			  
             </div>
             <button class="cbtn prev" id="cPrev" type="button" aria-label="Предыдущий кадр">&#8249;</button>
             <button class="cbtn next" id="cNext" type="button" aria-label="Следующий кадр">&#8250;</button>
@@ -511,7 +519,7 @@
       <div class="about-copy reveal">
         <div class="eyebrow">Обо мне</div>
         <p class="about-lede">Я комфортно работаю с нейросетями как с полноценным профессиональным инструментом. Параллельно я — практикующий фотограф: живой кадр и нейросеть у меня не конкурируют, а работают в связке.</p>
-        <p class="body">За моими плечами годы работы с бизнесом — я понимаю, что креатив должен решать задачи и продавать. В ИИ-продакшне использую топовые нейросети для создания профессиональных фото и видео.</p>
+        <p class="body">За моими плечами годы работы с бизнесом — я понимаю, что креатив должен решать задачи и продавать. В AI-продакшне использую топовые нейросети для создания профессиональных фото и видео.</p>
         <div class="about-stats">
           <div class="stat"><b>Нейросети</b><span>основной инструмент</span></div>
           <div class="stat"><b>B2B</b><span>опыт с бизнесом</span></div>
@@ -532,10 +540,10 @@
           <h2 style="font-size:clamp(28px,4vw,42px)">Работы по направлениям</h2>
         </div>
         <div class="tabs" role="tablist" aria-label="Разделы портфолио">
-          <button class="tab active" data-tab="aivideo" role="tab" aria-selected="true">ИИ-видео</button>
-          <button class="tab" data-tab="ai" role="tab" aria-selected="false">ИИ-креатив</button>
-          <button class="tab" data-tab="classic" role="tab" aria-selected="false">Классическая фотография</button>
-          <button class="tab" data-tab="video" role="tab" aria-selected="false">Классическое видео</button>
+          <button class="tab active" data-tab="aivideo" role="tab" aria-selected="true">AI-видео</button>
+          <button class="tab" data-tab="ai" role="tab" aria-selected="false">AI-фото</button>
+		  <button class="tab" data-tab="video" role="tab" aria-selected="false">Классическое видео</button>
+          <button class="tab" data-tab="classic" role="tab" aria-selected="false">Классические фото</button>
         </div>
       </div>
 
@@ -552,9 +560,9 @@
       </div>
       <div class="services-grid">
         <div class="service tag-ai">
-          <span class="tag mono">ИИ</span>
-          <h3>ИИ-продакшн</h3>
-          <p>Рекламные ролики, клипы и уникальное ИИ-фото, сгенерированные под задачи бренда — от идеи до готового кадра.</p>
+          <span class="tag mono">AI</span>
+          <h3>AI-продакшн</h3>
+          <p>Рекламные ролики, клипы и уникальное AI-фото, сгенерированные под задачи бренда — от идеи до готового кадра.</p>
         </div>
         <div class="service">
           <span class="tag mono">ВИДЕО</span>
@@ -599,6 +607,7 @@
       <a href="#about">Обо мне</a>
       <a href="#portfolio">Портфолио</a>
       <a href="#services">Услуги</a>
+	  <a href="#top">Вверх</a>
     </div>
     <div class="foot-col">
       <b class="mono">СВЯЗЬ</b>
@@ -649,72 +658,67 @@
       washFrom: "var(--indigo)", washTo: "#242866",
       note: "Ролики целиком собраны нейросетью: идея, кадры, сборка.",
       items: [
-        {title:"ИИ клип: сбор урожая", dur:"2:21",
+	    {title:"Фильм «Приключения Филиппа и Толика»", dur:"1:32",
+         poster:"images/reel-08.jpg", preview:"videos/reel-08-preview.mp4", video:"videos/reel-08.mp4", wide:true},
+        {title:"Клип «Pulpa de Pasion»", dur:"2:21",
          poster:"images/reel-05.jpg", preview:"videos/reel-05-preview.mp4", video:"videos/reel-05.mp4"},
-        {title:"ИИ клип: сцена и микрофон", dur:"1:31",
+        {title:"Клип «Апп»", dur:"1:31",
          poster:"images/reel-06.jpg", preview:"videos/reel-06-preview.mp4", video:"videos/reel-06.mp4"},
-        {title:"ИИ клип: турагентство", dur:"1:30",
+        {title:"Конкурсная работа «Не буди во мне льва»", dur:"0:44",
+         poster:"images/reel-11.jpg", preview:"videos/reel-11-preview.mp4", video:"videos/reel-11.mp4", wide:true},
+        {title:"Конкурсная работа  «Птичье молоко»", dur:"2:34",
+         poster:"images/reel-12.jpg", preview:"videos/reel-12-preview.mp4", video:"videos/reel-12.mp4", wide:true},
+        {title:"Клип «Дубай-Гудбай»", dur:"1:30",
          poster:"images/reel-07.jpg", preview:"videos/reel-07-preview.mp4", video:"videos/reel-07.mp4"},
-        {title:"Мультфильм: сцена на пляже", dur:"0:38",
-         poster:"images/reel-01.jpg", preview:"videos/reel-01-preview.mp4", video:"videos/reel-01.mp4"},
-        {title:"Ролик: вечер в саду", dur:"1:13",
+        {title:"Мультфильм в стиле Pixar «Помидорка и ее друзья»", dur:"1:13",
          poster:"images/reel-03.jpg", preview:"videos/reel-03-preview.mp4", video:"videos/reel-03.mp4"},
-        {title:"Короткометражка: 2050", dur:"2:34",
-         poster:"images/reel-12.jpg", preview:"videos/reel-12-preview.mp4", video:"videos/reel-12.mp4"},
-        {title:"Кинематографичный ролик: детство", dur:"1:32",
-         poster:"images/reel-08.jpg", preview:"videos/reel-08-preview.mp4", video:"videos/reel-08.mp4"},
-        {title:"Демо: реалистичные кадры", dur:"0:44",
-         poster:"images/reel-11.jpg", preview:"videos/reel-11-preview.mp4", video:"videos/reel-11.mp4"},
-        {title:"Ролик: дорога и заправка", dur:"0:30",
-         poster:"images/reel-09.jpg", preview:"videos/reel-09-preview.mp4", video:"videos/reel-09.mp4"}
+        {title:"Мини-хорор для социальных сетей", dur:"0:30",
+         poster:"images/reel-09.jpg", preview:"videos/reel-09-preview.mp4", video:"videos/reel-09.mp4", wide:true}
       ]
     },
     ai: {
       washFrom: "var(--indigo)", washTo: "#242866",
-      note: "Кадры из ИИ-продакшна: генерация под задачу бренда.",
+      note: "Кадры из AI-продакшна: генерация под задачу бренда.",
       items: [
+        {title:"Кадр из короткометражки", img:"images/short-film.jpg", wide:true},
         {title:"Портрет", img:"images/ai-avatar.jpg"},
         {title:"Сгенерированный образ", img:"images/ai-social.jpg"},
-        {title:"Рекламный кадр", img:"images/ai-ad.jpg"},
-        {title:"Кадр из клипа", img:"images/ai-clip.jpg"},
-        {title:"Кадр из мультфильма", img:"images/ai-cartoon.jpg"},
-        {title:"Кадр из короткометражки", img:"images/short-film.jpg"},
         {title:"Развёртка персонажа: панк-образ", img:"images/turnaround-01.jpg", wide:true},
-        {title:"Развёртка персонажа: велоформа", img:"images/turnaround-02.jpg", wide:true},
-        {title:"Развёртка персонажа с сеткой", img:"images/turnaround-grid.jpg", wide:true}
+		{title:"Развёртка персонажа с сеткой", img:"images/turnaround-grid.jpg", wide:true},
+        {title:"Рекламный кадр", img:"images/ai-ad.jpg"},
+		{title:"Кадр из мультфильма", img:"images/ai-cartoon.jpg"}
+   
       ]
     },
     classic: {
       washFrom: "var(--copper)", washTo: "#6f3d15",
       note: "Съёмка на профессиональную технику и студийный свет.",
       items: [
-        {title:"Портрет, студийный свет", img:"images/studio-portrait.jpg"},
-        {title:"Семейная съёмка", img:"images/family-shoot.jpg"},
-        {title:"Портрет, крупный план", img:"images/portrait-closeup.jpg"},
+        {title:"Семейная съёмка", img:"images/family-shoot.jpg", wide:true},
+		{title:"Женский портрет", img:"images/female-portrait.jpg"},
+		{title:"Портрет, крупный план", img:"images/portrait-closeup.jpg"},
+        {title:"Мужской портрет", img:"images/male-portrait.jpg", wide:true},
         {title:"Портрет, чёрно-белая съёмка", img:"images/portrait-bw.jpg"},
-        {title:"Женский портрет, студия", img:"images/female-portrait.jpg"},
-        {title:"Съёмка животных", img:"images/pet-portrait.jpg"},
-        {title:"Мужской портрет в интерьере", img:"images/male-portrait.jpg", wide:true}
-      ]
+	    {title:"Съёмка животных", img:"images/pet-portrait.jpg"},
+	    {title:"Женский портрет №2", img:"images/female-portrait-2.jpg"}
+		]
     },
     video: {
       washFrom: "var(--copper)", washTo: "#6f3d15",
       note: "Живая съёмка на камеру: от исходников до готового ролика.",
       items: [
-        {title:"Рецептный ролик, фуд-съёмка", dur:"1:00",
-         poster:"images/reel-02.jpg", preview:"videos/reel-02-preview.mp4", video:"videos/reel-02.mp4"},
-        {title:"Аджика с перцами", dur:"1:19",
-         poster:"images/reel-10.jpg", preview:"videos/reel-10-preview.mp4", video:"videos/reel-10.mp4"},
-        {title:"Фаршированные перцы", dur:"1:19",
-         poster:"images/reel-16.jpg", preview:"videos/reel-16-preview.mp4", video:"videos/reel-16.mp4"},
-        {title:"Фуд-съёмка: острый перец", dur:"1:00",
-         poster:"images/reel-15.jpg", preview:"videos/reel-15-preview.mp4", video:"videos/reel-15.mp4"},
-        {title:"Кофе, крупный план", dur:"0:24",
+        {title:"Reels для социальных сетей (кафе)", dur:"0:24",
          poster:"images/reel-13.jpg", preview:"videos/reel-13-preview.mp4", video:"videos/reel-13.mp4"},
-        {title:"Атмосферный ролик: кофейня", dur:"0:29",
+        {title:"Видео-рецепт «Долма»", dur:"1:00",
+         poster:"images/reel-02.jpg", preview:"videos/reel-02-preview.mp4", video:"videos/reel-02.mp4", wide:true},
+        {title:"Видео-рецепт «Аджика по-мегрельски»", dur:"1:00",
+         poster:"images/reel-15.jpg", preview:"videos/reel-15-preview.mp4", video:"videos/reel-15.mp4", wide:true},
+        {title:"Reels для социальных сетей (кафе) №2", dur:"0:29",
          poster:"images/reel-14.jpg", preview:"videos/reel-14-preview.mp4", video:"videos/reel-14.mp4"},
-        {title:"Живое видео в кадре", dur:"0:16",
-         poster:"images/reel-04.jpg", preview:"videos/reel-04-preview.mp4", video:"videos/reel-04.mp4"}
+        {title:"Reels для социальных сетей (расскажи о себе)", dur:"0:16",
+         poster:"images/reel-04.jpg", preview:"videos/reel-04-preview.mp4", video:"videos/reel-04.mp4"},
+        {title:"Видео-рецепт «Фаршированные перцы»", dur:"1:19",
+         poster:"images/reel-16.jpg", preview:"videos/reel-16-preview.mp4", video:"videos/reel-16.mp4", wide:true}
       ]
     }
   };
@@ -881,8 +885,8 @@
     var box   = document.getElementById("carousel");
     if(!track || !box) return;
 
-    var KINDS = ["классический кадр", "AI-образ, клип", "кадр из клипа"];
-    var DELAY = 5000;
+    var KINDS = ["мужской портрет (камера canon)", "мужской портрет (ai-генерация)", "женский портрет (камера canon)", "женский портрет (ai-генерация)", "детский портрет (камера canon)", "детский портрет (ai-генерация)"];
+    var DELAY =5000;
 
     var kindEl = document.getElementById("slideKind");
     var idxEl  = document.getElementById("slideIdx");
