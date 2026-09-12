@@ -56,6 +56,7 @@
     gap:10px;
   }
   .eyebrow::before{content:"";width:22px;height:1px;background:currentColor;opacity:.55;}
+  .hero .eyebrow{flex-wrap:wrap;row-gap:4px;}
 
   @media (prefers-reduced-motion: reduce){
     *{animation:none!important;transition:none!important;}
@@ -150,6 +151,25 @@
   .hero .eyebrow{color:var(--copper-soft);margin-bottom:18px;}
   .hero-ctas{display:flex;gap:14px;flex-wrap:wrap;margin-top:34px;}
 
+  /* фуд-блог: главный внешний аргумент, поэтому стоит на первом экране */
+  .tiktok{
+    display:inline-flex;align-items:center;gap:14px;flex-wrap:wrap;
+    margin-top:26px;padding:13px 18px;text-decoration:none;border-radius:2px;
+    border:1px solid rgba(193,112,46,.45);background:rgba(193,112,46,.10);
+    color:var(--on-ink);
+    transition:background .2s ease,border-color .2s ease,transform .18s ease;
+  }
+  .tiktok:hover{background:rgba(193,112,46,.18);border-color:var(--copper);}
+  .tiktok:active{transform:scale(.98);}
+  .tiktok:focus-visible{outline:2px solid var(--indigo);outline-offset:3px;}
+  .tiktok b{
+    font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:26px;line-height:1;
+    color:var(--copper-soft);font-variant-numeric:tabular-nums;
+  }
+  .tiktok em{font-style:normal;font-size:14.5px;}
+  .tiktok span{font-size:12.5px;color:var(--on-ink-muted);letter-spacing:.04em;}
+  @media (max-width:420px){.tiktok{gap:10px;}.tiktok b{font-size:22px;}}
+
   /* карусель в герое: кадры в полном качестве, без прорисовки */
   .stage{
     position:relative;border:1px solid var(--line-ink);padding:14px;
@@ -232,6 +252,10 @@
     display:block;font-family:'Fraunces',serif;font-size:26px;color:var(--on-paper);
   }
   .about-stats .stat span{font-size:12.5px;color:var(--on-paper-muted);letter-spacing:.04em;}
+  .about-stats a.stat{text-decoration:none;}
+  .about-stats a.stat b{color:var(--copper);}
+  .about-stats a.stat span{text-decoration:underline;text-underline-offset:3px;}
+  .about-stats a.stat:hover b{color:var(--copper-soft);}
 
   /* ---------- portfolio ---------- */
   .folio-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:40px;}
@@ -420,13 +444,18 @@
   <section class="hero">
     <div class="wrap hero-grid">
       <div>
-        <div class="eyebrow">Креатор · Фотограф · Видеомонтаж (полный цикл)</div>
+        <div class="eyebrow">Креатор · Фотограф · Фуд-блогер · Видеомонтаж (полный цикл)</div>
         <h1>Женя Аверкиева.</h1>
         <p class="sub">Соединяю классику и нейросети, чтобы создавать образы, которые продают и цепляют.</p>
         <div class="hero-ctas">
           <a href="#portfolio" class="btn btn-primary">Смотреть портфолио</a>
           <a href="#contact" class="btn btn-ghost-ink">Связаться со мной</a>
         </div>
+        <a class="tiktok" href="https://www.tiktok.com/@tagan_kazan" target="_blank" rel="noopener">
+          <b>190 тыс.</b>
+          <em>подписчиков в моём фуд-блоге</em>
+          <span class="mono">TIKTOK · @TAGAN_KAZAN</span>
+        </a>
       </div>
       <div>
         <div class="stage">
@@ -469,6 +498,9 @@
           <div class="stat"><b>Нейросети</b><span>основной инструмент</span></div>
           <div class="stat"><b>B2B</b><span>опыт с бизнесом</span></div>
           <div class="stat"><b>Полный цикл</b><span>монтаж видео</span></div>
+          <a class="stat" href="https://www.tiktok.com/@tagan_kazan" target="_blank" rel="noopener">
+            <b>190 тыс.</b><span>подписчиков в фуд-блоге</span>
+          </a>
         </div>
       </div>
     </div>
@@ -527,6 +559,7 @@
       <div class="contact-ctas">
         <a href="https://t.me/Po_mi_dorka" target="_blank" rel="noopener" class="btn btn-indigo">Написать в Telegram</a>
         <a href="https://wa.me/qr/RQPUDX65WRNJM1" target="_blank" rel="noopener" class="btn btn-ghost-ink">Написать в WhatsApp</a>
+        <a href="https://www.tiktok.com/@tagan_kazan" target="_blank" rel="noopener" class="btn btn-ghost-ink">Фуд-блог в TikTok</a>
       </div>
       <div class="qr-card">
         <img src="images/whatsapp-qr.jpg" alt="QR-код WhatsApp — Евгения Аверкиева" width="220" height="224">
@@ -541,7 +574,7 @@
   <div class="wrap foot-grid">
     <div>
       <div class="foot-brand">Женя Аверкиева</div>
-      <p class="foot-tag">AI-креатор и фотограф. Классическая эстетика и возможности нейросетей — в одном кадре.</p>
+      <p class="foot-tag">Креатор, фотограф и фуд-блогер. Классическая эстетика и возможности нейросетей — в одном кадре.</p>
     </div>
     <div class="foot-col">
       <b class="mono">РАЗДЕЛЫ</b>
@@ -553,6 +586,7 @@
       <b class="mono">СВЯЗЬ</b>
       <a href="https://t.me/Po_mi_dorka" target="_blank" rel="noopener">Telegram</a>
       <a href="https://wa.me/qr/RQPUDX65WRNJM1" target="_blank" rel="noopener">WhatsApp</a>
+      <a href="https://www.tiktok.com/@tagan_kazan" target="_blank" rel="noopener">TikTok · 190 тыс.</a>
     </div>
   </div>
   <div class="wrap foot-bar">
