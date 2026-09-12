@@ -256,10 +256,6 @@
   }
   .card .tile .wash{position:absolute;inset:0;}
   .card .tile .shape{position:absolute;border-radius:50%;filter:blur(2px);opacity:.55;}
-  .card .tile .code{
-    position:absolute;top:10px;left:10px;font-size:10.5px;color:rgba(242,237,227,.85);
-    background:rgba(20,17,15,.35);padding:3px 7px;letter-spacing:.05em;z-index:3;
-  }
   .card .tile .playtag{
     position:absolute;bottom:10px;right:10px;width:30px;height:30px;border-radius:50%;
     background:rgba(20,17,15,.55);display:flex;align-items:center;justify-content:center;z-index:3;
@@ -280,7 +276,7 @@
   .card .tile{transition:transform .5s cubic-bezier(.2,.8,.2,1);}
   .card .cap{padding:13px 14px 15px;}
   .card .cap b{display:block;font-size:14.5px;font-weight:600;color:var(--on-ink);}
-  .card .cap span{display:block;margin-top:3px;font-size:12.5px;color:var(--on-ink-muted);}
+  .card .cap{padding-block:15px;}
 
   .folio-note{
     margin-top:26px;font-size:12.5px;color:var(--on-ink-muted);
@@ -313,7 +309,7 @@
   }
   .lightbox-cap.center{justify-content:center;}
   .lightbox-inner.wide{max-width:980px;}
-  .lightbox-cap{display:flex;justify-content:space-between;color:var(--on-ink-muted);margin-top:16px;font-size:13px;gap:16px;flex-wrap:wrap;}
+  .lightbox-cap{display:flex;justify-content:center;color:var(--on-ink-muted);margin-top:16px;font-size:13px;gap:16px;flex-wrap:wrap;}
   .lightbox-cap b{color:var(--on-ink);font-weight:600;}
   .lightbox-close{
     position:absolute;top:max(18px, env(safe-area-inset-top));right:18px;
@@ -551,7 +547,6 @@
     <div class="lightbox-tile" id="lightboxTile"></div>
     <div class="lightbox-cap">
       <b id="lightboxTitle"></b>
-      <span id="lightboxCode" class="mono"></span>
     </div>
   </div>
 </div>
@@ -582,40 +577,40 @@
       washFrom: "var(--indigo)", washTo: "#242866",
       note: "Кадры из AI-продакшна: генерация под задачу бренда.",
       items: [
-        {title:"Портрет, сгенерированный образ", code:"SEED 048213", img:"images/ai-avatar.jpg"},
-        {title:"Рекламный AI-кадр",              code:"SEED 019284", img:"images/ai-ad.jpg"},
-        {title:"Кадр из AI-клипа",               code:"SEED 073310", img:"images/ai-clip.jpg"},
-        {title:"AI-мультфильм, кадр",            code:"SEED 052197", img:"images/ai-cartoon.jpg"},
-        {title:"Короткометражный фильм, кадр",   code:"SEED 031177", img:"images/short-film.jpg"},
-        {title:"AI-кадр для соцсетей",           code:"SEED 088420", img:"images/ai-social.jpg"}
+        {title:"Портрет, сгенерированный образ", img:"images/ai-avatar.jpg"},
+        {title:"Рекламный AI-кадр", img:"images/ai-ad.jpg"},
+        {title:"Кадр из AI-клипа", img:"images/ai-clip.jpg"},
+        {title:"AI-мультфильм, кадр", img:"images/ai-cartoon.jpg"},
+        {title:"Короткометражный фильм, кадр", img:"images/short-film.jpg"},
+        {title:"AI-кадр для соцсетей", img:"images/ai-social.jpg"}
       ]
     },
     classic: {
       washFrom: "var(--copper)", washTo: "#6f3d15",
       note: "Съёмка на профессиональную технику и студийный свет.",
       items: [
-        {title:"Портрет, студийный свет", code:"FRAME 15A", img:"images/studio-portrait.jpg"},
-        {title:"Семейная съёмка",         code:"FRAME 16A", img:"images/family-shoot.jpg"},
-        {title:"Портрет, крупный план",   code:"FRAME 19A", img:"images/portrait-closeup.jpg"}
+        {title:"Портрет, студийный свет", img:"images/studio-portrait.jpg"},
+        {title:"Семейная съёмка", img:"images/family-shoot.jpg"},
+        {title:"Портрет, крупный план", img:"images/portrait-closeup.jpg"}
       ]
     },
     video: {
       washFrom: "var(--copper)", washTo: "var(--indigo)",
       note: "Наведите курсор — превью начнёт играть. Клик открывает ролик со звуком.",
       items: [
-        {title:"AI-мультфильм: сцена на пляже", code:"REEL 01", dur:"0:38",
+        {title:"AI-мультфильм: сцена на пляже", dur:"0:38",
          poster:"images/reel-01.jpg", preview:"videos/reel-01-preview.mp4", video:"videos/reel-01.mp4"},
-        {title:"Фуд-съёмка: рецептный ролик", code:"REEL 02", dur:"1:00",
+        {title:"Фуд-съёмка: рецептный ролик", dur:"1:00",
          poster:"images/reel-02.jpg", preview:"videos/reel-02-preview.mp4", video:"videos/reel-02.mp4"},
-        {title:"AI-ролик: вечер в саду", code:"REEL 03", dur:"1:13",
+        {title:"AI-ролик: вечер в саду", dur:"1:13",
          poster:"images/reel-03.jpg", preview:"videos/reel-03-preview.mp4", video:"videos/reel-03.mp4"},
-        {title:"Живое видео: съёмка в кадре", code:"REEL 04", dur:"0:16",
+        {title:"Живое видео: съёмка в кадре", dur:"0:16",
          poster:"images/reel-04.jpg", preview:"videos/reel-04-preview.mp4", video:"videos/reel-04.mp4"},
-        {title:"AI-история: сбор урожая", code:"REEL 05", dur:"2:21",
+        {title:"AI-история: сбор урожая", dur:"2:21",
          poster:"images/reel-05.jpg", preview:"videos/reel-05-preview.mp4", video:"videos/reel-05.mp4"},
-        {title:"AI-клип: сцена и микрофон", code:"REEL 06", dur:"1:31",
+        {title:"AI-клип: сцена и микрофон", dur:"1:31",
          poster:"images/reel-06.jpg", preview:"videos/reel-06-preview.mp4", video:"videos/reel-06.mp4"},
-        {title:"AI-реклама: турагентство", code:"REEL 07", dur:"1:30",
+        {title:"AI-реклама: турагентство", dur:"1:30",
          poster:"images/reel-07.jpg", preview:"videos/reel-07-preview.mp4", video:"videos/reel-07.mp4"}
       ]
     }
@@ -628,7 +623,6 @@
   var lightboxInner = document.getElementById("lightboxInner");
   var lightboxTile = document.getElementById("lightboxTile");
   var lightboxTitle = document.getElementById("lightboxTitle");
-  var lightboxCode = document.getElementById("lightboxCode");
   var lightboxCap = document.querySelector(".lightbox-cap");
 
   function esc(s){
@@ -653,7 +647,6 @@
                'src="' + esc(item.preview || item.video) + '"></video>';
     }
 
-    parts += '<div class="code mono">' + esc(item.code) + '</div>';
     if(item.video){
       parts += '<div class="dur mono">' + esc(item.dur || "") + '</div>' +
                '<div class="playtag">' + playIcon + '</div>';
@@ -705,7 +698,7 @@
       card.setAttribute("tabindex", "0");
       card.innerHTML =
         '<div class="tile">' + tileInner(item, set, idx) + '</div>' +
-        '<div class="cap"><b>' + esc(item.title) + '</b><span>' + esc(item.code) + '</span></div>';
+        '<div class="cap"><b>' + esc(item.title) + '</b></div>';
       function open(){ openLightbox(item, set, idx); }
       card.addEventListener("click", open);
       card.addEventListener("keydown", function(e){
@@ -745,7 +738,6 @@
     }
 
     lightboxTitle.textContent = item.title;
-    lightboxCode.textContent = item.code;
     lightbox.classList.add("open");
     document.body.classList.add("menu-open");
   }

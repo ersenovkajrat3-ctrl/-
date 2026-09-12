@@ -19,8 +19,8 @@
 2. В `index.html` найдите блок `video:` внутри переменной `data` и допишите объект:
 
 ```js
-{title:"Название", code:"REEL 04", dur:"0:45",
- poster:"images/reel-04.jpg", preview:"videos/reel-04-preview.mp4", video:"videos/reel-04.mp4"}
+{title:"Название", dur:"0:45",
+ poster:"images/reel-08.jpg", preview:"videos/reel-08-preview.mp4", video:"videos/reel-08.mp4"}
 ```
 
 Поля `preview` и `poster` необязательные: без них карточка покажет градиентную
