@@ -407,7 +407,7 @@
   <section class="hero">
     <div class="wrap hero-grid">
       <div>
-        <div class="eyebrow">AI-креатор · Фотограф</div>
+        <div class="eyebrow">AI-креатор · Фотограф · Видеомонтаж (полный цикл)</div>
         <h1>Женя Аверкиева.</h1>
         <p class="sub">Соединяю классику и нейросети, чтобы создавать образы, которые продают и цепляют.</p>
         <div class="hero-ctas">
@@ -439,12 +439,12 @@
         </div>
         <div class="portrait-cap mono">
           <span>ЖЕНЯ АВЕРКИЕВА</span>
-          <span>НА ПЛОЩАДКЕ</span>
+          <span>РАБОЧИЙ ПРОЦЕСС</span>
         </div>
       </div>
       <div class="about-copy reveal">
         <div class="eyebrow">Обо мне</div>
-        <p class="about-lede">Я комфортно чувствую себя в нейросетях и работаю с ними как с полноценным инструментом. А классическая фотография дополняет эту работу живым кадром.</p>
+        <p class="about-lede">Нейросети для меня рабочий инструмент, а не эксперимент: я знаю, как получить от них нужный кадр. И я профессиональный фотограф — снимаю сама, со своей техникой и светом.</p>
         <p class="body">За моими плечами годы работы с бизнесом (B2B), поэтому я понимаю: креатив должен решать задачи — продавать, вовлекать и цеплять. Для AI-продакшна использую топовые нейросети, а для фото- и видеосъёмки — профессиональная техника и свет. Также беру на себя видеомонтаж с полным циклом: от исходников до готового ролика.</p>
         <div class="about-stats">
           <div class="stat"><b>Нейросети</b><span>основной инструмент</span></div>
@@ -463,9 +463,10 @@
           <h2 style="font-size:clamp(28px,4vw,42px)">Работы по направлениям</h2>
         </div>
         <div class="tabs" role="tablist" aria-label="Разделы портфолио">
-          <button class="tab active" data-tab="ai" role="tab" aria-selected="true">AI-креатив</button>
+          <button class="tab active" data-tab="aivideo" role="tab" aria-selected="true">AI-видео</button>
+          <button class="tab" data-tab="ai" role="tab" aria-selected="false">AI-креатив</button>
+          <button class="tab" data-tab="video" role="tab" aria-selected="false">Классическое видео</button>
           <button class="tab" data-tab="classic" role="tab" aria-selected="false">Классическая фотография</button>
-          <button class="tab" data-tab="video" role="tab" aria-selected="false">Видео и монтаж</button>
         </div>
       </div>
 
@@ -487,14 +488,14 @@
           <p>Рекламные ролики, клипы и уникальное AI-фото, сгенерированные под задачи бренда — от идеи до готового кадра.</p>
         </div>
         <div class="service">
-          <span class="tag mono">EDIT</span>
+          <span class="tag mono">ВИДЕО</span>
           <h3>Видеомонтаж</h3>
-          <p>Полный цикл работы с реальным видео: обработка отснятого материала, сборка, цветокоррекция — от исходников до готового ролика.</p>
+          <p>Полный цикл работы с видео: сборка, цветокоррекция и саунд-дизайн — от исходников до готового ролика.</p>
         </div>
         <div class="service">
-          <span class="tag mono">FILM</span>
+          <span class="tag mono">СЪЁМКА</span>
           <h3>Классический продакшн</h3>
-          <p>Студийные фотосессии: портрет, семья, предметная и фуд-съёмка с профессиональной техникой и светом.</p>
+          <p>Видеосъёмка, студийные и выездные фотосессии. Профессиональная техника и свет на площадке.</p>
         </div>
       </div>
     </div>
@@ -573,6 +574,22 @@
      ("images/reel-01.jpg"). Пустое поле = стилевая заглушка.
   ----------------------------------------------------------------*/
   var data = {
+    aivideo: {
+      washFrom: "var(--indigo)", washTo: "#242866",
+      note: "Ролики целиком собраны нейросетью: идея, кадры, сборка.",
+      items: [
+        {title:"История: сбор урожая", dur:"2:21",
+         poster:"images/reel-05.jpg", preview:"videos/reel-05-preview.mp4", video:"videos/reel-05.mp4"},
+        {title:"Клип: сцена и микрофон", dur:"1:31",
+         poster:"images/reel-06.jpg", preview:"videos/reel-06-preview.mp4", video:"videos/reel-06.mp4"},
+        {title:"Реклама: турагентство", dur:"1:30",
+         poster:"images/reel-07.jpg", preview:"videos/reel-07-preview.mp4", video:"videos/reel-07.mp4"},
+        {title:"Мультфильм: сцена на пляже", dur:"0:38",
+         poster:"images/reel-01.jpg", preview:"videos/reel-01-preview.mp4", video:"videos/reel-01.mp4"},
+        {title:"Ролик: вечер в саду", dur:"1:13",
+         poster:"images/reel-03.jpg", preview:"videos/reel-03-preview.mp4", video:"videos/reel-03.mp4"}
+      ]
+    },
     ai: {
       washFrom: "var(--indigo)", washTo: "#242866",
       note: "Кадры из AI-продакшна: генерация под задачу бренда.",
@@ -585,6 +602,16 @@
         {title:"AI-кадр для соцсетей", img:"images/ai-social.jpg"}
       ]
     },
+    video: {
+      washFrom: "var(--copper)", washTo: "#6f3d15",
+      note: "Съёмка на камеру и монтаж: от исходников до готового ролика.",
+      items: [
+        {title:"Фуд-съёмка: рецептный ролик", dur:"1:00",
+         poster:"images/reel-02.jpg", preview:"videos/reel-02-preview.mp4", video:"videos/reel-02.mp4"},
+        {title:"Съёмка в кадре", dur:"0:16",
+         poster:"images/reel-04.jpg", preview:"videos/reel-04-preview.mp4", video:"videos/reel-04.mp4"}
+      ]
+    },
     classic: {
       washFrom: "var(--copper)", washTo: "#6f3d15",
       note: "Съёмка на профессиональную технику и студийный свет.",
@@ -592,26 +619,6 @@
         {title:"Портрет, студийный свет", img:"images/studio-portrait.jpg"},
         {title:"Семейная съёмка", img:"images/family-shoot.jpg"},
         {title:"Портрет, крупный план", img:"images/portrait-closeup.jpg"}
-      ]
-    },
-    video: {
-      washFrom: "var(--copper)", washTo: "var(--indigo)",
-      note: "Наведите курсор — превью начнёт играть. Клик открывает ролик со звуком.",
-      items: [
-        {title:"AI-мультфильм: сцена на пляже", dur:"0:38",
-         poster:"images/reel-01.jpg", preview:"videos/reel-01-preview.mp4", video:"videos/reel-01.mp4"},
-        {title:"Фуд-съёмка: рецептный ролик", dur:"1:00",
-         poster:"images/reel-02.jpg", preview:"videos/reel-02-preview.mp4", video:"videos/reel-02.mp4"},
-        {title:"AI-ролик: вечер в саду", dur:"1:13",
-         poster:"images/reel-03.jpg", preview:"videos/reel-03-preview.mp4", video:"videos/reel-03.mp4"},
-        {title:"Живое видео: съёмка в кадре", dur:"0:16",
-         poster:"images/reel-04.jpg", preview:"videos/reel-04-preview.mp4", video:"videos/reel-04.mp4"},
-        {title:"AI-история: сбор урожая", dur:"2:21",
-         poster:"images/reel-05.jpg", preview:"videos/reel-05-preview.mp4", video:"videos/reel-05.mp4"},
-        {title:"AI-клип: сцена и микрофон", dur:"1:31",
-         poster:"images/reel-06.jpg", preview:"videos/reel-06-preview.mp4", video:"videos/reel-06.mp4"},
-        {title:"AI-реклама: турагентство", dur:"1:30",
-         poster:"images/reel-07.jpg", preview:"videos/reel-07-preview.mp4", video:"videos/reel-07.mp4"}
       ]
     }
   };
@@ -764,112 +771,39 @@
     });
   });
 
-  render("ai");
+  render("aivideo");
 
 
   /* ---------------------------------------------------------------
      СЦЕНА В ГЕРОЕ
-     В покое кадр показывается как есть, в полном разрешении. На переходе
-     поверх него проявляется слой частиц: они разлетаются волной по
-     диагонали, уходя в индиго, и собираются в следующий кадр.
-     Чередуются AI-работа и живая съёмка — это и есть то, чем занимается Женя.
+     Кадры сменяются диагональной шторкой: новый проявляется из-под
+     светящейся кромки, оба кадра всё время в полном разрешении.
+     Пока кадр держится, он очень медленно наезжает — сцена не замирает.
+     Подпись слева называет, что сейчас на экране.
   ----------------------------------------------------------------*/
   (function stage(){
     var canvas = document.getElementById("heroCanvas");
     if(!canvas || !canvas.getContext) return;
 
     var SHOTS = [
-      ["images/hero/01.jpg", "латентный образ"],
-      ["images/hero/02.jpg", "классический кадр"],
-      ["images/hero/03.jpg", "латентный образ"],
-      ["images/hero/04.jpg", "классический кадр"]
+      ["images/hero/01.jpg", "AI-портрет"],
+      ["images/hero/02.jpg", "классический портрет"],
+      ["images/hero/03.jpg", "кадр из AI-клипа"],
+      ["images/hero/04.jpg", "портрет, крупный план"]
     ];
 
-    /* на узких экранах частиц вдвое меньше: канвас там всё равно мелкий,
-       а считать 22 тысячи точек на телефоне незачем */
-    var dense = !window.matchMedia || window.matchMedia("(min-width: 760px)").matches;
-    var COLS = dense ? 132 : 88, ROWS = dense ? 165 : 110, N = COLS * ROWS;
-    var BW = COLS * 2, BH = ROWS * 2;  /* на каждую частицу ровно 2x2 пикселя буфера */
-    var HOLD = 2800, MORPH = 2000;     /* кадр держится, затем перелёт */
-    var WAVE = 0.45;                   /* доля перелёта, за которую волна проходит кадр */
-    var FADE = 0.10;                   /* на этой доле слой частиц проявляется и гаснет */
+    var HOLD  = 3400;     /* кадр держится */
+    var WIPE  = 1500;     /* шторка проходит кадр */
+    var SOFT  = 0.055;    /* ширина размытой кромки: узкая, иначе кадры наслаиваются */
+    var ZOOM  = 0.045;    /* наезд за полный цикл */
 
     var ctx = canvas.getContext("2d");
     var kindEl = document.getElementById("heroKind");
     var idxEl  = document.getElementById("heroIdx");
 
-    var buf = document.createElement("canvas");
-    buf.width = BW; buf.height = BH;
-    var bctx = buf.getContext("2d");
-    var frame = bctx.createImageData(BW, BH);
+    var mask = document.createElement("canvas");
+    var mctx = mask.getContext("2d");
 
-    /* фон буфера — тот же градиент, что у рамки */
-    var bg = new Uint8ClampedArray(BW * BH * 4);
-    for(var y = 0; y < BH; y++){
-      var k = y / (BH - 1);
-      for(var x = 0; x < BW; x++){
-        var o = (y * BW + x) * 4;
-        bg[o]     = 36 - 16 * k;
-        bg[o + 1] = 31 - 14 * k;
-        bg[o + 2] = 26 - 11 * k;
-        bg[o + 3] = 255;
-      }
-    }
-
-    var sampler = document.createElement("canvas");
-    sampler.width = COLS; sampler.height = ROWS;
-    var sctx = sampler.getContext("2d", {willReadFrequently: true});
-
-    /* сетка «домашних» точек, разлёт и задержка вылета для каждой частицы */
-    var homeX = new Float32Array(N), homeY = new Float32Array(N);
-    var blowX = new Float32Array(N), blowY = new Float32Array(N);
-    var wob   = new Uint8Array(N);     /* фаза дрожания: индекс в таблице, а не радианы */
-    var wave  = new Float32Array(N);
-
-    /* синус разлёта заранее посчитан на 256 шагов: 22 тысячи вызовов Math.sin
-       на кадр съедали заметную часть бюджета */
-    var SPR = new Float32Array(256);
-    for(var q = 0; q < 256; q++){
-      var v = Math.sin(q / 255 * Math.PI);
-      SPR[q] = v * v;
-    }
-    var WOBN = 64;
-    var wsin = new Float32Array(WOBN), wcos = new Float32Array(WOBN);
-    var i = 0;
-    for(var r = 0; r < ROWS; r++){
-      for(var c = 0; c < COLS; c++){
-        var hx = c * 2, hy = r * 2;
-        homeX[i] = hx; homeY[i] = hy;
-        var dx = hx - BW / 2, dy = hy - BH / 2;
-        var d = Math.sqrt(dx * dx + dy * dy) || 1;
-        var swirl = 0.55 + Math.random() * 0.9;
-        /* разлёт по касательной к центру: получается лёгкий вихрь */
-        blowX[i] = (-dy / d) * 32 * swirl + (Math.random() - 0.5) * 60;
-        blowY[i] = ( dx / d) * 32 * swirl + (Math.random() - 0.5) * 60;
-        wob[i] = (Math.random() * WOBN) | 0;
-        wave[i] = (hx / BW * 0.6 + hy / BH * 0.4) * WAVE + Math.random() * 0.05;
-        i++;
-      }
-    }
-
-    var images = [], palettes = [], ready = 0;
-
-    function sample(img){
-      var s = Math.max(COLS / img.naturalWidth, ROWS / img.naturalHeight);
-      var w = img.naturalWidth * s, h = img.naturalHeight * s;
-      sctx.clearRect(0, 0, COLS, ROWS);
-      sctx.drawImage(img, (COLS - w) / 2, (ROWS - h) / 2, w, h);
-      var px = sctx.getImageData(0, 0, COLS, ROWS).data;
-      var out = new Uint8ClampedArray(N * 3);
-      for(var j = 0; j < N; j++){
-        out[j * 3]     = px[j * 4];
-        out[j * 3 + 1] = px[j * 4 + 1];
-        out[j * 3 + 2] = px[j * 4 + 2];
-      }
-      return out;
-    }
-
-    /* внутреннее разрешение канваса — под плотность экрана, но не больше двух */
     function fit(){
       var box = canvas.getBoundingClientRect();
       if(!box.width) return;
@@ -877,42 +811,40 @@
       var w = Math.round(box.width * dpr), h = Math.round(box.height * dpr);
       if(canvas.width === w && canvas.height === h) return;
       canvas.width = w; canvas.height = h;
+      mask.width = w; mask.height = h;
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "medium";
+      mctx.imageSmoothingEnabled = true;
+      mctx.imageSmoothingQuality = "medium";
     }
 
-    function cover(img){
+    /* кадр вписывается по большей стороне и слегка наезжает */
+    function cover(target, img, zoom){
       var cw = canvas.width, ch = canvas.height;
-      var s = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
+      var s = Math.max(cw / img.naturalWidth, ch / img.naturalHeight) * (1 + zoom);
       var w = img.naturalWidth * s, h = img.naturalHeight * s;
-      ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
+      target.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
     }
 
+    var images = [], ready = 0;
     var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     SHOTS.forEach(function(shot, n){
       var img = new Image();
-      img.onload = function(){
-        images[n] = img;
-        try { palettes[n] = sample(img); } catch(e) { palettes[n] = null; }
-        if(++ready === SHOTS.length) start();
-      };
-      img.onerror = function(){
-        images[n] = null; palettes[n] = null;
-        if(++ready === SHOTS.length) start();
-      };
+      img.onload  = function(){ images[n] = img;   if(++ready === SHOTS.length) start(); };
+      img.onerror = function(){ images[n] = null;  if(++ready === SHOTS.length) start(); };
       img.src = shot[0];
     });
 
     function start(){
       var live = [];
-      palettes.forEach(function(pal, n){ if(pal && images[n]) live.push(n); });
+      images.forEach(function(img, n){ if(img) live.push(n); });
       if(!live.length) return;              /* кадры не дошли — остаётся градиент рамки */
 
       var at = 0;
       var from = live[0], to = live[live.length > 1 ? 1 : 0];
       var phaseStart = performance.now();
-      var named = false;   /* подпись меняется на середине перелёта, вместе с картинкой */
+      var named = false;
 
       fit();
       window.addEventListener("resize", fit);
@@ -923,64 +855,47 @@
         if(idxEl)  idxEl.textContent = "0" + (n + 1);
       }
 
-      function particles(p, t){
-        var data = frame.data;
-        data.set(bg);
-        var a = palettes[from], b = palettes[to];
-        var span = 1 - WAVE;
+      /* шторка идёт по диагонали сверху слева вниз направо */
+      function wipe(p){
+        var cw = canvas.width, ch = canvas.height;
+        var edge = p * (1 + SOFT);
+        var a = Math.max(0, Math.min(1, edge - SOFT));
+        var b = Math.max(0, Math.min(1, edge));
+        if(b - a < 0.001) b = Math.min(1, a + 0.001);
 
-        for(var q = 0; q < WOBN; q++){
-          var ph = q / WOBN * Math.PI * 2;
-          wsin[q] = Math.sin(t * 0.004 + ph) * 2.6;
-          wcos[q] = Math.cos(t * 0.0035 + ph) * 2.6;
-        }
+        var g = mctx.createLinearGradient(0, 0, cw, ch);
+        g.addColorStop(0, "rgba(0,0,0,1)");
+        g.addColorStop(a, "rgba(0,0,0,1)");
+        g.addColorStop(b, "rgba(0,0,0,0)");
+        g.addColorStop(1, "rgba(0,0,0,0)");
 
-        for(var j = 0; j < N; j++){
-          var lp = (p - wave[j]) / span;
-          if(lp < 0) lp = 0; else if(lp > 1) lp = 1;
-          var spread = SPR[(lp * 255) | 0];
-          var mix = lp < 0.35 ? 0 : lp > 0.65 ? 1 : (lp - 0.35) / 0.3;
+        mctx.globalCompositeOperation = "source-over";
+        mctx.clearRect(0, 0, cw, ch);
+        cover(mctx, images[to], ZOOM * p);
+        mctx.globalCompositeOperation = "destination-in";
+        mctx.fillStyle = g;
+        mctx.fillRect(0, 0, cw, ch);
+        mctx.globalCompositeOperation = "source-over";
 
-          var px = homeX[j], py = homeY[j];
-          if(spread > 0.001){
-            var w = wob[j];
-            px += (blowX[j] + wsin[w]) * spread;
-            py += (blowY[j] + wcos[w]) * spread;
-          }
+        ctx.drawImage(mask, 0, 0);
 
-          var x0 = (px + 0.5) | 0, y0 = (py + 0.5) | 0;
-          if(x0 < 0 || y0 < 0 || x0 >= BW - 1 || y0 >= BH - 1) continue;
-
-          var k = j * 3;
-          var cr = a[k]     + (b[k]     - a[k])     * mix;
-          var cg = a[k + 1] + (b[k + 1] - a[k + 1]) * mix;
-          var cb = a[k + 2] + (b[k + 2] - a[k + 2]) * mix;
-          /* на разлёте частицы холодеют — уход в латентное пространство */
-          if(spread > 0.001){
-            cr += (110 - cr) * spread * 0.6;
-            cg += (123 - cg) * spread * 0.6;
-            cb += (255 - cb) * spread * 0.6;
-          }
-
-          for(var dy = 0; dy < 2; dy++){
-            var o = ((y0 + dy) * BW + x0) * 4;
-            data[o]     = cr; data[o + 1] = cg; data[o + 2] = cb; data[o + 3] = 255;
-            data[o + 4] = cr; data[o + 5] = cg; data[o + 6] = cb; data[o + 7] = 255;
-          }
-        }
-        bctx.putImageData(frame, 0, 0);
+        /* светящаяся кромка на стыке кадров */
+        var lg = ctx.createLinearGradient(0, 0, cw, ch);
+        var c0 = Math.max(0, a - 0.035), c1 = Math.min(1, b + 0.035);
+        var fade = Math.min(1, Math.sin(p * Math.PI) * 1.6);
+        lg.addColorStop(c0, "rgba(154,163,255,0)");
+        lg.addColorStop((c0 + c1) / 2, "rgba(216,147,88," + (0.5 * fade).toFixed(3) + ")");
+        lg.addColorStop(c1, "rgba(154,163,255,0)");
+        ctx.globalCompositeOperation = "lighter";
+        ctx.fillStyle = lg;
+        ctx.fillRect(0, 0, cw, ch);
+        ctx.globalCompositeOperation = "source-over";
       }
 
-      function paint(p, t){
-        /* снизу всегда лежит целая фотография: в покое кадр не мозаичный */
-        cover(images[p < 0.5 ? from : to]);
-        if(p <= 0 || p >= 1) return;
-
-        particles(p, t);
-        var alpha = Math.min(p, 1 - p) / FADE;
-        ctx.globalAlpha = alpha < 1 ? alpha : 1;
-        ctx.drawImage(buf, 0, 0, canvas.width, canvas.height);
-        ctx.globalAlpha = 1;
+      function paint(p, held){
+        fit();
+        cover(ctx, images[from], ZOOM * (p > 0 ? 1 : held));
+        if(p > 0) wipe(p);
       }
 
       if(still || live.length === 1){
@@ -991,9 +906,9 @@
       function tick(now){
         var t = now - phaseStart;
         if(t < HOLD){
-          paint(0, now);
+          paint(0, t / HOLD);
         } else {
-          var p = (t - HOLD) / MORPH;
+          var p = (t - HOLD) / WIPE;
           if(p >= 1){
             from = to;
             at = (at + 1) % live.length;
@@ -1001,10 +916,12 @@
             phaseStart = now;
             named = false;
             label(from);
-            paint(0, now);
+            paint(0, 0);
           } else {
             if(!named && p >= 0.5){ named = true; label(to); }
-            paint(p, now);
+            /* мягкое ускорение и торможение шторки */
+            var e = p < 0.5 ? 2 * p * p : 1 - 2 * (1 - p) * (1 - p);
+            paint(e, 1);
           }
         }
         requestAnimationFrame(tick);
