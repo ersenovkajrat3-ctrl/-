@@ -150,51 +150,28 @@
   .hero .eyebrow{color:var(--copper-soft);margin-bottom:18px;}
   .hero-ctas{display:flex;gap:14px;flex-wrap:wrap;margin-top:34px;}
 
-  /* light-table scan grid */
-  .scan-frame{
+  /* сцена в герое: кадр рассыпается в частицы и собирается заново */
+  .stage{
     position:relative;border:1px solid var(--line-ink);padding:14px;
     background:rgba(255,255,255,.02);
   }
-  .scan-frame-label{
-    display:flex;justify-content:space-between;font-size:11px;color:var(--on-ink-muted);
-    margin-bottom:10px;letter-spacing:.08em;
+  .stage-label{
+    display:flex;justify-content:space-between;gap:12px;font-size:11px;
+    color:var(--on-ink-muted);margin-bottom:10px;letter-spacing:.08em;
+    text-transform:uppercase;
   }
-  .scan-grid{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:6px;
-    position:relative;
-  }
-  .scan-grid .cell{
+  .stage-label b{color:var(--copper-soft);font-weight:500;}
+  .stage-frame{
     position:relative;aspect-ratio:4/5;overflow:hidden;
-    background:linear-gradient(155deg,var(--copper) 0%,#6f3d15 100%);
+    background:linear-gradient(160deg,#241f1a 0%,#14110f 100%);
   }
-  .scan-grid .cell::before{
-    content:"";position:absolute;inset:0;background:var(--grain-svg);background-size:140px 140px;
-    mix-blend-mode:overlay;opacity:.5;
+  .stage-frame canvas{
+    position:absolute;inset:0;width:100%;height:100%;display:block;
   }
-  .scan-grid .cell::after{
-    content:"";position:absolute;inset:0;
-    background:linear-gradient(155deg,var(--indigo) 0%,#242866 100%);
-    opacity:0;
-    animation:reveal-ai 6.4s ease-in-out infinite;
-  }
-  .scan-grid .cell:nth-child(1)::after{animation-delay:0s;}
-  .scan-grid .cell:nth-child(2)::after{animation-delay:.18s;}
-  .scan-grid .cell:nth-child(3)::after{animation-delay:.36s;}
-  .scan-grid .cell:nth-child(4)::after{animation-delay:.5s;}
-  .scan-grid .cell:nth-child(5)::after{animation-delay:.68s;}
-  .scan-grid .cell:nth-child(6)::after{animation-delay:.86s;}
-  .scan-grid .cell:nth-child(7)::after{animation-delay:1.0s;}
-  .scan-grid .cell:nth-child(8)::after{animation-delay:1.18s;}
-  .scan-grid .cell:nth-child(9)::after{animation-delay:1.36s;}
-  @keyframes reveal-ai{
-    0%,38%{opacity:0;}
-    50%,72%{opacity:1;}
-    84%,100%{opacity:0;}
-  }
-  .scan-bar{
-    position:absolute;left:0;right:0;height:2px;
+  .stage-sweep{
+    position:absolute;left:0;right:0;height:2px;pointer-events:none;
     background:linear-gradient(90deg, transparent, var(--indigo-soft), var(--copper-soft), transparent);
-    box-shadow:0 0 14px 1px rgba(154,163,255,.6);
+    box-shadow:0 0 14px 1px rgba(154,163,255,.55);
     animation:sweep 6.4s ease-in-out infinite;
   }
   @keyframes sweep{
@@ -203,8 +180,7 @@
     100%{top:0%;}
   }
   @media (prefers-reduced-motion: reduce){
-    .scan-grid .cell::after{animation:none;opacity:.55;}
-    .scan-bar{display:none;}
+    .stage-sweep{display:none;}
   }
 
   /* ---------- section shells ---------- */
@@ -444,16 +420,14 @@
         </div>
       </div>
       <div>
-        <div class="scan-frame">
-          <div class="scan-frame-label mono">
-            <span>КОНТАКТНЫЙ ЛИСТ / 09</span>
-            <span>ЛАТЕНТНЫЙ РЯД / 09</span>
+        <div class="stage">
+          <div class="stage-label mono">
+            <span id="heroKind">классический кадр</span>
+            <span><b id="heroIdx">01</b> / 04</span>
           </div>
-          <div class="scan-grid">
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
-            <div class="cell"></div><div class="cell"></div><div class="cell"></div>
-            <div class="scan-bar"></div>
+          <div class="stage-frame">
+            <canvas id="heroCanvas" width="450" height="564" aria-hidden="true"></canvas>
+            <div class="stage-sweep"></div>
           </div>
         </div>
       </div>
@@ -612,7 +586,8 @@
         {title:"Рекламный AI-кадр",              code:"SEED 019284", img:"images/ai-ad.jpg"},
         {title:"Кадр из AI-клипа",               code:"SEED 073310", img:"images/ai-clip.jpg"},
         {title:"AI-мультфильм, кадр",            code:"SEED 052197", img:"images/ai-cartoon.jpg"},
-        {title:"Короткометражный фильм, кадр",   code:"SEED 031177", img:"images/short-film.jpg"}
+        {title:"Короткометражный фильм, кадр",   code:"SEED 031177", img:"images/short-film.jpg"},
+        {title:"AI-кадр для соцсетей",           code:"SEED 088420", img:"images/ai-social.jpg"}
       ]
     },
     classic: {
@@ -621,8 +596,7 @@
       items: [
         {title:"Портрет, студийный свет", code:"FRAME 15A", img:"images/studio-portrait.jpg"},
         {title:"Семейная съёмка",         code:"FRAME 16A", img:"images/family-shoot.jpg"},
-        {title:"Портрет, крупный план",   code:"FRAME 19A", img:"images/portrait-closeup.jpg"},
-        {title:"Съёмка для соцсетей",     code:"FRAME 22A", img:"images/social-shoot.jpg"}
+        {title:"Портрет, крупный план",   code:"FRAME 19A", img:"images/portrait-closeup.jpg"}
       ]
     },
     video: {
@@ -793,6 +767,204 @@
   });
 
   render("ai");
+
+
+  /* ---------------------------------------------------------------
+     СЦЕНА В ГЕРОЕ
+     Кадр раскладывается на частицы, они разлетаются и собираются
+     в следующий кадр. Чередуются живая съёмка и AI-работа — это и есть
+     то, чем занимается Женя.
+  ----------------------------------------------------------------*/
+  (function stage(){
+    var canvas = document.getElementById("heroCanvas");
+    if(!canvas || !canvas.getContext) return;
+
+    var SHOTS = [
+      ["images/hero/01.jpg", "латентный образ"],
+      ["images/hero/02.jpg", "классический кадр"],
+      ["images/hero/03.jpg", "латентный образ"],
+      ["images/hero/04.jpg", "классический кадр"]
+    ];
+
+    var COLS = 72, ROWS = 90, N = COLS * ROWS;
+    var BW = COLS * 2, BH = ROWS * 2;  /* буфер: на каждую частицу ровно 2x2 пикселя */
+    var HOLD = 2600, MORPH = 1900;     /* кадр держится, затем перелёт */
+    var WAVE = 0.45;                   /* доля перелёта, за которую волна проходит кадр */
+
+    var ctx = canvas.getContext("2d");
+    var kindEl = document.getElementById("heroKind");
+    var idxEl  = document.getElementById("heroIdx");
+
+    var buf = document.createElement("canvas");
+    buf.width = BW; buf.height = BH;
+    var bctx = buf.getContext("2d");
+    var frame = bctx.createImageData(BW, BH);
+
+    /* фон буфера — тот же градиент, что у рамки */
+    var bg = new Uint8ClampedArray(BW * BH * 4);
+    for(var y = 0; y < BH; y++){
+      var k = y / (BH - 1);
+      for(var x = 0; x < BW; x++){
+        var o = (y * BW + x) * 4;
+        bg[o]     = 36 - 16 * k;
+        bg[o + 1] = 31 - 14 * k;
+        bg[o + 2] = 26 - 11 * k;
+        bg[o + 3] = 255;
+      }
+    }
+
+    var sampler = document.createElement("canvas");
+    sampler.width = COLS; sampler.height = ROWS;
+    var sctx = sampler.getContext("2d", {willReadFrequently: true});
+
+    /* сетка «домашних» точек и случайный разлёт для каждой частицы */
+    var homeX = new Float32Array(N), homeY = new Float32Array(N);
+    var blowX = new Float32Array(N), blowY = new Float32Array(N);
+    var wob   = new Float32Array(N);
+    var wave  = new Float32Array(N);   /* задержка вылета: волна идёт по диагонали */
+    var i = 0;
+    for(var r = 0; r < ROWS; r++){
+      for(var c = 0; c < COLS; c++){
+        var hx = c * 2, hy = r * 2;
+        homeX[i] = hx; homeY[i] = hy;
+        var dx = hx - BW / 2, dy = hy - BH / 2;
+        var d = Math.sqrt(dx * dx + dy * dy) || 1;
+        var swirl = 0.55 + Math.random() * 0.9;
+        /* разлёт по касательной к центру: получается лёгкий вихрь */
+        blowX[i] = (-dy / d) * 18 * swirl + (Math.random() - 0.5) * 34;
+        blowY[i] = ( dx / d) * 18 * swirl + (Math.random() - 0.5) * 34;
+        wob[i] = Math.random() * Math.PI * 2;
+        wave[i] = (hx / BW * 0.6 + hy / BH * 0.4) * WAVE + Math.random() * 0.05;
+        i++;
+      }
+    }
+
+    var palettes = [];   /* по кадру: Uint8ClampedArray(N*3) */
+    var ready = 0;
+
+    function sample(img){
+      var s = Math.max(COLS / img.width, ROWS / img.height);
+      var w = img.width * s, h = img.height * s;
+      sctx.clearRect(0, 0, COLS, ROWS);
+      sctx.drawImage(img, (COLS - w) / 2, (ROWS - h) / 2, w, h);
+      var px = sctx.getImageData(0, 0, COLS, ROWS).data;
+      var out = new Uint8ClampedArray(N * 3);
+      for(var j = 0; j < N; j++){
+        out[j * 3]     = px[j * 4];
+        out[j * 3 + 1] = px[j * 4 + 1];
+        out[j * 3 + 2] = px[j * 4 + 2];
+      }
+      return out;
+    }
+
+    var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    SHOTS.forEach(function(shot, n){
+      var img = new Image();
+      img.onload = function(){
+        try { palettes[n] = sample(img); } catch(e) { palettes[n] = null; }
+        if(++ready === SHOTS.length) start();
+      };
+      img.onerror = function(){
+        palettes[n] = null;
+        if(++ready === SHOTS.length) start();
+      };
+      img.src = shot[0];
+    });
+
+    function start(){
+      var live = [];
+      palettes.forEach(function(pal, n){ if(pal) live.push(n); });
+      if(!live.length) return;              /* картинки не дошли — остаётся градиент */
+
+      var at = 0;
+      var from = live[0], to = live[live.length > 1 ? 1 : 0];
+      var phaseStart = performance.now();
+      var named = false;   /* подпись меняется на середине перелёта, вместе с картинкой */
+
+      label(from);
+      ctx.imageSmoothingEnabled = true;
+
+      function label(n){
+        if(kindEl) kindEl.textContent = SHOTS[n][1];
+        if(idxEl)  idxEl.textContent = "0" + (n + 1);
+      }
+
+      function paint(p, t){
+        var data = frame.data;
+        data.set(bg);
+        var a = palettes[from], b = palettes[to];
+        var span = 1 - WAVE;
+        for(var j = 0; j < N; j++){
+          var px = homeX[j], py = homeY[j];
+
+          var lp = (p - wave[j]) / span;
+          if(lp < 0) lp = 0; else if(lp > 1) lp = 1;
+          var spread = Math.sin(lp * Math.PI); spread *= spread;
+          var mix = lp < 0.35 ? 0 : lp > 0.65 ? 1 : (lp - 0.35) / 0.3;
+
+          if(spread > 0.001){
+            px += blowX[j] * spread;
+            py += blowY[j] * spread;
+          }
+          if(spread > 0.001){
+            px += Math.sin(t * 0.004 + wob[j]) * 1.6 * spread;
+            py += Math.cos(t * 0.0035 + wob[j]) * 1.6 * spread;
+          }
+
+          var x0 = Math.round(px), y0 = Math.round(py);
+          if(x0 < 0 || y0 < 0 || x0 >= BW - 1 || y0 >= BH - 1) continue;
+
+          var k = j * 3;
+          var cr = a[k]     + (b[k]     - a[k])     * mix;
+          var cg = a[k + 1] + (b[k + 1] - a[k + 1]) * mix;
+          var cb = a[k + 2] + (b[k + 2] - a[k + 2]) * mix;
+          /* на разлёте частицы холодеют — «уход в латентное пространство» */
+          if(spread > 0.001){
+            cr += (110 - cr) * spread * 0.6;
+            cg += (123 - cg) * spread * 0.6;
+            cb += (255 - cb) * spread * 0.6;
+          }
+
+          for(var dy = 0; dy < 2; dy++){
+            var o = ((y0 + dy) * BW + x0) * 4;
+            data[o]     = cr; data[o + 1] = cg; data[o + 2] = cb; data[o + 3] = 255;
+            data[o + 4] = cr; data[o + 5] = cg; data[o + 6] = cb; data[o + 7] = 255;
+          }
+        }
+        bctx.putImageData(frame, 0, 0);
+        ctx.drawImage(buf, 0, 0, canvas.width, canvas.height);
+      }
+
+      if(still || live.length === 1){
+        paint(0, 0);
+        return;
+      }
+
+      function tick(now){
+        var t = now - phaseStart;
+        if(t < HOLD){
+          paint(0, now);
+        } else {
+          var p = (t - HOLD) / MORPH;
+          if(p >= 1){
+            from = to;
+            at = (at + 1) % live.length;
+            to = live[(at + 1) % live.length];
+            phaseStart = now;
+            named = false;
+            label(from);
+            paint(0, now);
+          } else {
+            if(!named && p >= 0.5){ named = true; label(to); }
+            paint(p, now);
+          }
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+  })();
 
   /* mobile menu */
   var hamburger = document.getElementById("hamburger");
