@@ -150,7 +150,7 @@
   .hero .eyebrow{color:var(--copper-soft);margin-bottom:18px;}
   .hero-ctas{display:flex;gap:14px;flex-wrap:wrap;margin-top:34px;}
 
-  /* сцена в герое: кадр рассыпается в частицы и собирается заново */
+  /* карусель в герое: кадры в полном качестве, без прорисовки */
   .stage{
     position:relative;border:1px solid var(--line-ink);padding:14px;
     background:rgba(255,255,255,.02);
@@ -161,27 +161,34 @@
     text-transform:uppercase;
   }
   .stage-label b{color:var(--copper-soft);font-weight:500;}
-  .stage-frame{
-    position:relative;aspect-ratio:4/5;overflow:hidden;
-    background:linear-gradient(160deg,#241f1a 0%,#14110f 100%);
+
+  .carousel{position:relative;overflow:hidden;background:var(--ink-2);}
+  .slides{display:flex;transition:transform .55s cubic-bezier(.22,.75,.2,1);}
+  .slides.noanim{transition:none;}
+  .slide{flex:0 0 100%;aspect-ratio:4/5;position:relative;}
+  .slide img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;
   }
-  .stage-frame canvas{
-    position:absolute;inset:0;width:100%;height:100%;display:block;
+
+  .cbtn{
+    position:absolute;top:50%;transform:translateY(-50%);z-index:3;
+    width:44px;height:44px;border:1px solid var(--line-ink);border-radius:50%;
+    background:rgba(20,17,15,.55);color:var(--on-ink);cursor:pointer;
+    font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;
+    transition:background .2s ease,border-color .2s ease;
   }
-  .stage-sweep{
-    position:absolute;left:0;right:0;height:2px;pointer-events:none;
-    background:linear-gradient(90deg, transparent, var(--indigo-soft), var(--copper-soft), transparent);
-    box-shadow:0 0 14px 1px rgba(154,163,255,.55);
-    animation:sweep 6.4s ease-in-out infinite;
+  .cbtn:hover{background:rgba(20,17,15,.85);border-color:var(--on-ink-muted);}
+  .cbtn:focus-visible{outline:2px solid var(--indigo);outline-offset:2px;}
+  .cbtn.prev{left:10px;}
+  .cbtn.next{right:10px;}
+
+  .dots{display:flex;gap:8px;justify-content:center;margin-top:12px;}
+  .dot{
+    width:30px;height:3px;padding:0;border:0;cursor:pointer;border-radius:2px;
+    background:var(--line-ink);transition:background .25s ease;
   }
-  @keyframes sweep{
-    0%{top:0%;}
-    50%{top:100%;}
-    100%{top:0%;}
-  }
-  @media (prefers-reduced-motion: reduce){
-    .stage-sweep{display:none;}
-  }
+  .dot[aria-current="true"]{background:var(--copper-soft);}
+  .dot:focus-visible{outline:2px solid var(--indigo);outline-offset:3px;}
 
   /* ---------- section shells ---------- */
   section{position:relative;}
@@ -407,7 +414,7 @@
   <section class="hero">
     <div class="wrap hero-grid">
       <div>
-        <div class="eyebrow">AI-креатор · Фотограф · Видеомонтаж (полный цикл)</div>
+        <div class="eyebrow">Креатор · Фотограф · Видеомонтаж (полный цикл)</div>
         <h1>Женя Аверкиева.</h1>
         <p class="sub">Соединяю классику и нейросети, чтобы создавать образы, которые продают и цепляют.</p>
         <div class="hero-ctas">
@@ -418,13 +425,19 @@
       <div>
         <div class="stage">
           <div class="stage-label mono">
-            <span id="heroKind">классический кадр</span>
-            <span><b id="heroIdx">01</b> / 04</span>
+            <span id="slideKind">классический кадр</span>
+            <span><b id="slideIdx">01</b> / 03</span>
           </div>
-          <div class="stage-frame">
-            <canvas id="heroCanvas" width="450" height="564" aria-hidden="true"></canvas>
-            <div class="stage-sweep"></div>
+          <div class="carousel" id="carousel">
+            <div class="slides" id="slides">
+              <div class="slide"><img src="images/slides/01.jpg" alt="Классический кадр: студийный портрет" fetchpriority="high"></div>
+              <div class="slide"><img src="images/slides/02.jpg" alt="AI-образ: кадр из клипа"></div>
+              <div class="slide"><img src="images/slides/03.jpg" alt="Кадр из клипа, крупный план"></div>
+            </div>
+            <button class="cbtn prev" id="cPrev" type="button" aria-label="Предыдущий кадр">&#8249;</button>
+            <button class="cbtn next" id="cNext" type="button" aria-label="Следующий кадр">&#8250;</button>
           </div>
+          <div class="dots" id="cDots"></div>
         </div>
       </div>
     </div>
@@ -439,13 +452,13 @@
         </div>
         <div class="portrait-cap mono">
           <span>ЖЕНЯ АВЕРКИЕВА</span>
-          <span>РАБОЧИЙ ПРОЦЕСС</span>
+          <span>НА ПЛОЩАДКЕ</span>
         </div>
       </div>
       <div class="about-copy reveal">
         <div class="eyebrow">Обо мне</div>
-        <p class="about-lede">Нейросети для меня рабочий инструмент, а не эксперимент: я знаю, как получить от них нужный кадр. И я профессиональный фотограф — снимаю сама, со своей техникой и светом.</p>
-        <p class="body">За моими плечами годы работы с бизнесом (B2B), поэтому я понимаю: креатив должен решать задачи — продавать, вовлекать и цеплять. Для AI-продакшна использую топовые нейросети, а для фото- и видеосъёмки — профессиональная техника и свет. Также беру на себя видеомонтаж с полным циклом: от исходников до готового ролика.</p>
+        <p class="about-lede">Я комфортно работаю с нейросетями как с полноценным профессиональным инструментом. Параллельно я — практикующий фотограф: живой кадр и нейросеть у меня не конкурируют, а работают в связке.</p>
+        <p class="body">За моими плечами годы работы с бизнесом — я понимаю, что креатив должен решать задачи и продавать. В ИИ-продакшне использую топовые нейросети для создания профессиональных фото и видео.</p>
         <div class="about-stats">
           <div class="stat"><b>Нейросети</b><span>основной инструмент</span></div>
           <div class="stat"><b>B2B</b><span>опыт с бизнесом</span></div>
@@ -463,10 +476,10 @@
           <h2 style="font-size:clamp(28px,4vw,42px)">Работы по направлениям</h2>
         </div>
         <div class="tabs" role="tablist" aria-label="Разделы портфолио">
-          <button class="tab active" data-tab="aivideo" role="tab" aria-selected="true">AI-видео</button>
-          <button class="tab" data-tab="ai" role="tab" aria-selected="false">AI-креатив</button>
-          <button class="tab" data-tab="video" role="tab" aria-selected="false">Классическое видео</button>
+          <button class="tab active" data-tab="aivideo" role="tab" aria-selected="true">ИИ-видео</button>
+          <button class="tab" data-tab="ai" role="tab" aria-selected="false">ИИ-креатив</button>
           <button class="tab" data-tab="classic" role="tab" aria-selected="false">Классическая фотография</button>
+          <button class="tab" data-tab="video" role="tab" aria-selected="false">Классическое видео</button>
         </div>
       </div>
 
@@ -483,19 +496,19 @@
       </div>
       <div class="services-grid">
         <div class="service tag-ai">
-          <span class="tag mono">AI</span>
-          <h3>AI-продакшн</h3>
-          <p>Рекламные ролики, клипы и уникальное AI-фото, сгенерированные под задачи бренда — от идеи до готового кадра.</p>
+          <span class="tag mono">ИИ</span>
+          <h3>ИИ-продакшн</h3>
+          <p>Рекламные ролики, клипы и уникальное ИИ-фото, сгенерированные под задачи бренда — от идеи до готового кадра.</p>
         </div>
         <div class="service">
           <span class="tag mono">ВИДЕО</span>
-          <h3>Видеомонтаж</h3>
-          <p>Полный цикл работы с видео: сборка, цветокоррекция и саунд-дизайн — от исходников до готового ролика.</p>
+          <h3>Видеомонтаж (полный цикл)</h3>
+          <p>Монтаж, цветокоррекция и саунд-дизайн. От исходников до готового ролика.</p>
         </div>
         <div class="service">
           <span class="tag mono">СЪЁМКА</span>
           <h3>Классический продакшн</h3>
-          <p>Видеосъёмка, студийные и выездные фотосессии. Профессиональная техника и свет на площадке.</p>
+          <p>Видеосъёмка и выездная видеосъёмка, студийные и выездные фотосессии. Профессиональный свет и техника.</p>
         </div>
       </div>
     </div>
@@ -592,24 +605,14 @@
     },
     ai: {
       washFrom: "var(--indigo)", washTo: "#242866",
-      note: "Кадры из AI-продакшна: генерация под задачу бренда.",
+      note: "Кадры из ИИ-продакшна: генерация под задачу бренда.",
       items: [
-        {title:"Портрет, сгенерированный образ", img:"images/ai-avatar.jpg"},
-        {title:"Рекламный AI-кадр", img:"images/ai-ad.jpg"},
-        {title:"Кадр из AI-клипа", img:"images/ai-clip.jpg"},
-        {title:"AI-мультфильм, кадр", img:"images/ai-cartoon.jpg"},
-        {title:"Короткометражный фильм, кадр", img:"images/short-film.jpg"},
-        {title:"AI-кадр для соцсетей", img:"images/ai-social.jpg"}
-      ]
-    },
-    video: {
-      washFrom: "var(--copper)", washTo: "#6f3d15",
-      note: "Съёмка на камеру и монтаж: от исходников до готового ролика.",
-      items: [
-        {title:"Фуд-съёмка: рецептный ролик", dur:"1:00",
-         poster:"images/reel-02.jpg", preview:"videos/reel-02-preview.mp4", video:"videos/reel-02.mp4"},
-        {title:"Съёмка в кадре", dur:"0:16",
-         poster:"images/reel-04.jpg", preview:"videos/reel-04-preview.mp4", video:"videos/reel-04.mp4"}
+        {title:"Портрет", img:"images/ai-avatar.jpg"},
+        {title:"Сгенерированный образ", img:"images/ai-social.jpg"},
+        {title:"Рекламный кадр", img:"images/ai-ad.jpg"},
+        {title:"Кадр из клипа", img:"images/ai-clip.jpg"},
+        {title:"Кадр из мультфильма", img:"images/ai-cartoon.jpg"},
+        {title:"Кадр из короткометражки", img:"images/short-film.jpg"}
       ]
     },
     classic: {
@@ -619,6 +622,16 @@
         {title:"Портрет, студийный свет", img:"images/studio-portrait.jpg"},
         {title:"Семейная съёмка", img:"images/family-shoot.jpg"},
         {title:"Портрет, крупный план", img:"images/portrait-closeup.jpg"}
+      ]
+    },
+    video: {
+      washFrom: "var(--copper)", washTo: "#6f3d15",
+      note: "Живая съёмка на камеру: от исходников до готового ролика.",
+      items: [
+        {title:"Рецептный ролик, фуд-съёмка", dur:"1:00",
+         poster:"images/reel-02.jpg", preview:"videos/reel-02-preview.mp4", video:"videos/reel-02.mp4"},
+        {title:"Живое видео в кадре", dur:"0:16",
+         poster:"images/reel-04.jpg", preview:"videos/reel-04-preview.mp4", video:"videos/reel-04.mp4"}
       ]
     }
   };
@@ -775,159 +788,91 @@
 
 
   /* ---------------------------------------------------------------
-     СЦЕНА В ГЕРОЕ
-     Кадры сменяются диагональной шторкой: новый проявляется из-под
-     светящейся кромки, оба кадра всё время в полном разрешении.
-     Пока кадр держится, он очень медленно наезжает — сцена не замирает.
-     Подпись слева называет, что сейчас на экране.
+     КАРУСЕЛЬ В ГЕРОЕ
+     Обычная карусель: кадры лежат готовыми картинками и показываются
+     сразу в полном качестве. Стрелки, точки, свайп, автолистание с
+     паузой при наведении.
   ----------------------------------------------------------------*/
-  (function stage(){
-    var canvas = document.getElementById("heroCanvas");
-    if(!canvas || !canvas.getContext) return;
+  (function carousel(){
+    var track = document.getElementById("slides");
+    var box   = document.getElementById("carousel");
+    if(!track || !box) return;
 
-    var SHOTS = [
-      ["images/hero/01.jpg", "AI-портрет"],
-      ["images/hero/02.jpg", "классический портрет"],
-      ["images/hero/03.jpg", "кадр из AI-клипа"],
-      ["images/hero/04.jpg", "портрет, крупный план"]
-    ];
+    var KINDS = ["классический кадр", "AI-образ, клип", "кадр из клипа"];
+    var DELAY = 5000;
 
-    var HOLD  = 3400;     /* кадр держится */
-    var WIPE  = 1500;     /* шторка проходит кадр */
-    var SOFT  = 0.055;    /* ширина размытой кромки: узкая, иначе кадры наслаиваются */
-    var ZOOM  = 0.045;    /* наезд за полный цикл */
+    var kindEl = document.getElementById("slideKind");
+    var idxEl  = document.getElementById("slideIdx");
+    var dotsEl = document.getElementById("cDots");
+    var slides = track.querySelectorAll(".slide");
+    var total  = slides.length;
+    if(!total) return;
 
-    var ctx = canvas.getContext("2d");
-    var kindEl = document.getElementById("heroKind");
-    var idxEl  = document.getElementById("heroIdx");
-
-    var mask = document.createElement("canvas");
-    var mctx = mask.getContext("2d");
-
-    function fit(){
-      var box = canvas.getBoundingClientRect();
-      if(!box.width) return;
-      var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      var w = Math.round(box.width * dpr), h = Math.round(box.height * dpr);
-      if(canvas.width === w && canvas.height === h) return;
-      canvas.width = w; canvas.height = h;
-      mask.width = w; mask.height = h;
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "medium";
-      mctx.imageSmoothingEnabled = true;
-      mctx.imageSmoothingQuality = "medium";
-    }
-
-    /* кадр вписывается по большей стороне и слегка наезжает */
-    function cover(target, img, zoom){
-      var cw = canvas.width, ch = canvas.height;
-      var s = Math.max(cw / img.naturalWidth, ch / img.naturalHeight) * (1 + zoom);
-      var w = img.naturalWidth * s, h = img.naturalHeight * s;
-      target.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
-    }
-
-    var images = [], ready = 0;
+    var at = 0, timer = null;
     var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    SHOTS.forEach(function(shot, n){
-      var img = new Image();
-      img.onload  = function(){ images[n] = img;   if(++ready === SHOTS.length) start(); };
-      img.onerror = function(){ images[n] = null;  if(++ready === SHOTS.length) start(); };
-      img.src = shot[0];
+    var dots = [];
+    for(var i = 0; i < total; i++){
+      (function(n){
+        var d = document.createElement("button");
+        d.type = "button";
+        d.className = "dot";
+        d.setAttribute("aria-label", "Кадр " + (n + 1));
+        d.addEventListener("click", function(){ go(n); rearm(); });
+        dotsEl.appendChild(d);
+        dots.push(d);
+      })(i);
+    }
+
+    function go(n){
+      at = (n + total) % total;
+      track.style.transform = "translateX(" + (-at * 100) + "%)";
+      if(kindEl) kindEl.textContent = KINDS[at] || "";
+      if(idxEl)  idxEl.textContent = "0" + (at + 1);
+      dots.forEach(function(d, k){ d.setAttribute("aria-current", k === at ? "true" : "false"); });
+    }
+
+    function rearm(){
+      if(timer) clearInterval(timer);
+      if(still) return;
+      timer = setInterval(function(){ go(at + 1); }, DELAY);
+    }
+
+    document.getElementById("cPrev").addEventListener("click", function(){ go(at - 1); rearm(); });
+    document.getElementById("cNext").addEventListener("click", function(){ go(at + 1); rearm(); });
+
+    box.addEventListener("mouseenter", function(){ if(timer) clearInterval(timer); });
+    box.addEventListener("mouseleave", rearm);
+
+    box.addEventListener("keydown", function(e){
+      if(e.key === "ArrowLeft"){ go(at - 1); rearm(); }
+      if(e.key === "ArrowRight"){ go(at + 1); rearm(); }
     });
 
-    function start(){
-      var live = [];
-      images.forEach(function(img, n){ if(img) live.push(n); });
-      if(!live.length) return;              /* кадры не дошли — остаётся градиент рамки */
+    /* свайп пальцем */
+    var x0 = null;
+    box.addEventListener("touchstart", function(e){
+      x0 = e.touches[0].clientX;
+      if(timer) clearInterval(timer);
+    }, {passive:true});
+    box.addEventListener("touchend", function(e){
+      if(x0 === null) return;
+      var dx = e.changedTouches[0].clientX - x0;
+      if(Math.abs(dx) > 40) go(at + (dx < 0 ? 1 : -1));
+      x0 = null;
+      rearm();
+    });
 
-      var at = 0;
-      var from = live[0], to = live[live.length > 1 ? 1 : 0];
-      var phaseStart = performance.now();
-      var named = false;
+    /* пока вкладка не видна, не листаем */
+    document.addEventListener("visibilitychange", function(){
+      if(document.hidden){ if(timer) clearInterval(timer); }
+      else rearm();
+    });
 
-      fit();
-      window.addEventListener("resize", fit);
-      label(from);
-
-      function label(n){
-        if(kindEl) kindEl.textContent = SHOTS[n][1];
-        if(idxEl)  idxEl.textContent = "0" + (n + 1);
-      }
-
-      /* шторка идёт по диагонали сверху слева вниз направо */
-      function wipe(p){
-        var cw = canvas.width, ch = canvas.height;
-        var edge = p * (1 + SOFT);
-        var a = Math.max(0, Math.min(1, edge - SOFT));
-        var b = Math.max(0, Math.min(1, edge));
-        if(b - a < 0.001) b = Math.min(1, a + 0.001);
-
-        var g = mctx.createLinearGradient(0, 0, cw, ch);
-        g.addColorStop(0, "rgba(0,0,0,1)");
-        g.addColorStop(a, "rgba(0,0,0,1)");
-        g.addColorStop(b, "rgba(0,0,0,0)");
-        g.addColorStop(1, "rgba(0,0,0,0)");
-
-        mctx.globalCompositeOperation = "source-over";
-        mctx.clearRect(0, 0, cw, ch);
-        cover(mctx, images[to], ZOOM * p);
-        mctx.globalCompositeOperation = "destination-in";
-        mctx.fillStyle = g;
-        mctx.fillRect(0, 0, cw, ch);
-        mctx.globalCompositeOperation = "source-over";
-
-        ctx.drawImage(mask, 0, 0);
-
-        /* светящаяся кромка на стыке кадров */
-        var lg = ctx.createLinearGradient(0, 0, cw, ch);
-        var c0 = Math.max(0, a - 0.035), c1 = Math.min(1, b + 0.035);
-        var fade = Math.min(1, Math.sin(p * Math.PI) * 1.6);
-        lg.addColorStop(c0, "rgba(154,163,255,0)");
-        lg.addColorStop((c0 + c1) / 2, "rgba(216,147,88," + (0.5 * fade).toFixed(3) + ")");
-        lg.addColorStop(c1, "rgba(154,163,255,0)");
-        ctx.globalCompositeOperation = "lighter";
-        ctx.fillStyle = lg;
-        ctx.fillRect(0, 0, cw, ch);
-        ctx.globalCompositeOperation = "source-over";
-      }
-
-      function paint(p, held){
-        fit();
-        cover(ctx, images[from], ZOOM * (p > 0 ? 1 : held));
-        if(p > 0) wipe(p);
-      }
-
-      if(still || live.length === 1){
-        paint(0, 0);
-        return;
-      }
-
-      function tick(now){
-        var t = now - phaseStart;
-        if(t < HOLD){
-          paint(0, t / HOLD);
-        } else {
-          var p = (t - HOLD) / WIPE;
-          if(p >= 1){
-            from = to;
-            at = (at + 1) % live.length;
-            to = live[(at + 1) % live.length];
-            phaseStart = now;
-            named = false;
-            label(from);
-            paint(0, 0);
-          } else {
-            if(!named && p >= 0.5){ named = true; label(to); }
-            /* мягкое ускорение и торможение шторки */
-            var e = p < 0.5 ? 2 * p * p : 1 - 2 * (1 - p) * (1 - p);
-            paint(e, 1);
-          }
-        }
-        requestAnimationFrame(tick);
-      }
-      requestAnimationFrame(tick);
-    }
+    track.classList.add("noanim");
+    go(0);
+    requestAnimationFrame(function(){ track.classList.remove("noanim"); });
+    rearm();
   })();
 
   /* mobile menu */
