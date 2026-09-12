@@ -145,7 +145,12 @@ html {
   .hero-grid{
     display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;
   }
-  @media (max-width:900px){.hero-grid{grid-template-columns:1fr;gap:44px;}}
+  @media (max-width:900px){
+    .hero-grid{grid-template-columns:1fr;gap:44px;}
+    /* в одну колонку карусель растягивалась на всю ширину и кадры мылились:
+       исходники уже подложены впритык, поэтому ширину ограничиваем */
+    .stage{max-width:500px;margin-inline:auto;}
+  }
 
   .hero h1{font-size:clamp(40px,6.2vw,74px);color:var(--on-ink);}
   .hero .sub{
